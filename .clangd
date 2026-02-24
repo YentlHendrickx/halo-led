@@ -1,0 +1,6 @@
+CompileFlags:
+  Remove: 
+    - -mlongcalls
+    - -fipa-pta
+    - -mtext-section-literals
+    - -free
