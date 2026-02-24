@@ -4,11 +4,12 @@
 #include <Arduino.h>
 
 // All animations are time-based (millis()). No delays. Speed scales animation rate.
-// Call ledEffectsUpdate() every loop; it will throttle strip updates internally.
+// LED 0 = bottom (vertical mount).
 
 enum class LedEffect {
-  RainbowWave,
+  Aurora,
   Fire,
+  FireTop,
   MeteorShower,
   Breathing,
   Comet,
@@ -19,28 +20,69 @@ enum class LedEffect {
   Scanner,
   ColorWipe,
   TheaterChase,
+  StaticColor,
+  Rain,
+  Candle,
+  RainbowCycle,
+  Rule30,
+  Starfield,
+  Sinelon,
+  Noise,
   Count
 };
 
-// Initialize. Call once after ledStrip.begin().
-void ledEffectsBegin();
+const char* ledEffectsGetCurrentName();
+const char* const* ledEffectsGetNames();
+int ledEffectsGetNameCount();
+void ledEffectsSetStaticColor(uint8_t r, uint8_t g, uint8_t b);
+void ledEffectsGetStaticColor(uint8_t& r, uint8_t& g, uint8_t& b);
 
-// Run current effect. Call every loop(); uses millis() only, no blocking.
+// Accent color for effects that support it (Comet, Scanner, ColorWipe, TheaterChase, Rain, Candle, Twinkle, etc.)
+void ledEffectsSetAccentColor(uint8_t r, uint8_t g, uint8_t b);
+void ledEffectsGetAccentColor(uint8_t& r, uint8_t& g, uint8_t& b);
+
+// Per-effect color management
+void ledEffectsSetEffectColor(LedEffect e, uint8_t r, uint8_t g, uint8_t b);
+void ledEffectsGetEffectColor(LedEffect e, uint8_t& r, uint8_t& g, uint8_t& b);
+void ledEffectsResetEffectColor(LedEffect e);  // Revert to default
+bool ledEffectsHasEffectColor(LedEffect e);  // Check if effect has custom color
+
+// Global color (used by effects without custom colors)
+void ledEffectsSetGlobalColor(uint8_t r, uint8_t g, uint8_t b);
+void ledEffectsGetGlobalColor(uint8_t& r, uint8_t& g, uint8_t& b);
+
+// Intensity parameter (scales effect sizes, e.g., fire height)
+void ledEffectsSetIntensity(float intensity);
+float ledEffectsGetIntensity();
+
+void ledEffectsBegin();
+void ledEffectsLoadDefaults();  // Reset all user settings to defaults (for config clear / no saved config)
 void ledEffectsUpdate();
 
 void ledEffectsSet(LedEffect e);
-String ledEffectsNext(int brightness);
-void ledEffectsPrev(int brightness);
+bool ledEffectsSetByName(const char* name);
+const char* ledEffectsNext();
+const char* ledEffectsPrev();
 LedEffect ledEffectsCurrent();
 
-// Speed multiplier: 0.5 = half speed, 2.0 = double speed. Default 1.0.
+void ledEffectsSetBrightness(uint8_t b);
+uint8_t ledEffectsGetBrightness();
 void ledEffectsSetSpeed(float speed);
 float ledEffectsGetSpeed();
-
-// Auto-cycle to next effect after this many ms. 0 = disabled. Default 15000.
 void ledEffectsSetAutoCycleMs(unsigned long ms);
-
-// Target FPS for strip updates (throttle). Default 50. No delay() used.
 void ledEffectsSetTargetFps(uint8_t fps);
+uint8_t ledEffectsGetTargetFps();
+
+// Fire variant: Red or Blue
+enum class FireVariant {
+  Red,
+  Blue
+};
+void ledEffectsSetFireVariant(FireVariant variant);
+FireVariant ledEffectsGetFireVariant();
+
+struct EffectContext;
+void ledEffectsFillContext(EffectContext* ctx);
+void ledEffectsDispatchUpdate(EffectContext* ctx);
 
 #endif

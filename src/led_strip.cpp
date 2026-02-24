@@ -2,7 +2,7 @@
 #include "config.h"
 #include <Adafruit_NeoPixel.h>
 
-#define NEO_PIXEL_TYPE (NEO_GRB + NEO_KHZ800)
+#define NEO_PIXEL_TYPE (NEO_RGB + NEO_KHZ800)
 
 struct LedStrip::Impl {
   Adafruit_NeoPixel strip;

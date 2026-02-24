@@ -5,8 +5,11 @@
 #define WIFI_SSID     "REDACTED"
 #define WIFI_PASSWORD "REDACTED"
 
-// LED strip: pin and length (WS2815 compatible with WS2812B protocol)
+// LED strip: pin and length
 #define LED_PIN   2
-#define LED_COUNT 110   // number of LEDs in strip (~180 typical)
+#define LED_COUNT 110   // strip length; LED 0 = bottom (vertical mount)
+
+// WebSerial console (browser-based serial). Set to 0 to disable, 1 to enable.
+#define ENABLE_WEB_SERIAL 1
 
 #endif /* OTA_TEST_CONFIG_H */

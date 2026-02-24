@@ -1,98 +1,120 @@
 #include "led_effects.h"
 #include "led_strip.h"
-#include "config.h"
+#include "effect_context.h"
 #include <math.h>
+#include <string.h>
+#include <climits>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-#define MAX_LEDS 256
-#define FIRE_HEAT_SIZE ((MAX_LEDS) + 2)
-#define CONFETTI_PARTICLES 24
-#define METEOR_COUNT 5
-#define SCANNER_WIDTH 12
 
-namespace {
-
-// Hue to RGB (0-255). Full brightness.
-void hueToRgb(uint8_t hue, uint8_t& r, uint8_t& g, uint8_t& b) {
-  hue = 255 - hue;
-  if (hue < 85) {
-    r = 255 - hue * 3;
-    g = hue * 3;
-    b = 0;
-  } else if (hue < 170) {
-    hue -= 85;
-    r = hue * 3;
-    g = 255;
-    b = 0;
-  } else {
-    hue -= 170;
-    r = 0;
-    g = 255 - hue * 3;
-    b = hue * 3;
-  }
-}
-
-uint32_t hueToColor(uint8_t hue) {
-  uint8_t r, g, b;
-  hueToRgb(hue, r, g, b);
-  return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
-}
-
-uint8_t scale8(uint8_t x, uint8_t scale) {
-  return (uint16_t)x * scale >> 8;
-}
-
-// Simple pseudo-random 0-255 from seed (for deterministic effects if needed)
-uint8_t noise8(uint32_t x) {
-  x = (x >> 13) ^ x;
-  x = (x * (x * x * 15731 + 789221) + 1376312589) & 0x7FFFFFFF;
-  return (uint8_t)(x >> 23);
-}
-
-float fmodf_positive(float x, float m) {
-  if (m <= 0) return 0;
-  while (x >= m) x -= m;
-  while (x < 0) x += m;
-  return x;
-}
-
-} // namespace
+// Effect names (must match enum order).
+static const char* const EFFECT_NAMES[] = {
+  "Aurora", "Fire", "FireTop", "MeteorShower", "Breathing", "Comet", "Plasma",
+  "Confetti", "Twinkle", "Pride", "Scanner", "ColorWipe", "TheaterChase",
+  "StaticColor", "Rain", "Candle", "RainbowCycle", "Rule30", "Starfield", "Sinelon", "Noise"
+};
 
 // --- Engine state ---
-static LedEffect s_effect = LedEffect::RainbowWave;
+static LedEffect s_effect = LedEffect::Aurora;
 static float s_speed = 1.0f;
 static unsigned long s_autoCycleMs = 15000;
 static unsigned long s_lastCycleAt = 0;
 static unsigned long s_lastFrameMs = 0;
 static uint8_t s_targetFps = 50;
 static unsigned long s_effectStartMs = 0;
+static uint8_t s_brightness = 200;
+static uint8_t s_staticR = 255, s_staticG = 100, s_staticB = 50;
+static uint8_t s_accentR = 255, s_accentG = 120, s_accentB = 40;  // warm orange default
+// Global color (used by effects without custom colors)
+static uint8_t s_globalR = 255, s_globalG = 120, s_globalB = 40;  // warm orange default
 
-// Fire: heat buffer (index 0 = first LED, heat propagates "up" the strip)
-static uint8_t s_heat[FIRE_HEAT_SIZE];
-
-// Confetti: phase and vel per particle; position = fmod(t*vel + phase*n, n)
-struct ConfettiParticle {
-  float phase;  // 0..1 start offset
-  uint8_t hue;
-  float vel;
+// Per-effect colors (nullptr = use global/default)
+struct EffectColor {
+  uint8_t r, g, b;
+  bool custom;  // true if custom color set, false if using default
 };
-static ConfettiParticle s_confetti[CONFETTI_PARTICLES];
-static bool s_confettiInited = false;
+static EffectColor s_effectColors[static_cast<int>(LedEffect::Count)];
 
-// Meteor hues (positions derived from time)
-static uint8_t s_meteorHue[METEOR_COUNT];
-static bool s_meteorInited = false;
+// Intensity parameter (default 1.0, scales effect sizes)
+static float s_intensity = 1.0f;
+
+// Fire variant
+static FireVariant s_fireVariant = FireVariant::Red;
+
+// Default colors for each effect
+static void initDefaultColors() {
+  // Initialize all effects to use defaults (no custom colors)
+  for (int i = 0; i < static_cast<int>(LedEffect::Count); i++) {
+    s_effectColors[i].custom = false;
+    s_effectColors[i].r = 0;
+    s_effectColors[i].g = 0;
+    s_effectColors[i].b = 0;
+  }
+}
 
 void ledEffectsBegin() {
   s_lastCycleAt = millis();
   s_lastFrameMs = millis();
   s_effectStartMs = millis();
-  s_confettiInited = false;
-  s_meteorInited = false;
-  for (unsigned i = 0; i < FIRE_HEAT_SIZE; i++) s_heat[i] = 0;
+  s_brightness = 200;
+  s_intensity = 1.0f;
+  s_fireVariant = FireVariant::Red;
+  initDefaultColors();
+  ledStrip.setBrightness(s_brightness);
+}
+
+void ledEffectsLoadDefaults() {
+  ledEffectsSet(LedEffect::Aurora);
+  ledEffectsSetSpeed(1.0f);
+  ledEffectsSetTargetFps(50);
+  ledEffectsSetBrightness(200);
+  ledEffectsSetStaticColor(255, 100, 50);
+  ledEffectsSetAccentColor(255, 120, 40);
+  ledEffectsSetGlobalColor(255, 120, 40);
+  ledEffectsSetIntensity(1.0f);
+  ledEffectsSetFireVariant(FireVariant::Red);
+  ledEffectsSetAutoCycleMs(15000);
+  for (int i = 0; i < static_cast<int>(LedEffect::Count); i++) {
+    ledEffectsResetEffectColor(static_cast<LedEffect>(i));
+  }
+}
+
+void ledEffectsSetBrightness(uint8_t b) {
+  s_brightness = b;
+  ledStrip.setBrightness(b);
+}
+
+uint8_t ledEffectsGetBrightness() {
+  return s_brightness;
+}
+
+const char* ledEffectsGetCurrentName() {
+  uint8_t idx = static_cast<uint8_t>(s_effect);
+  if (idx >= sizeof(EFFECT_NAMES) / sizeof(EFFECT_NAMES[0])) return "?";
+  return EFFECT_NAMES[idx];
+}
+
+const char* const* ledEffectsGetNames() {
+  return EFFECT_NAMES;
+}
+
+int ledEffectsGetNameCount() {
+  return static_cast<int>(LedEffect::Count);
+}
+
+void ledEffectsSetStaticColor(uint8_t r, uint8_t g, uint8_t b) {
+  s_staticR = r;
+  s_staticG = g;
+  s_staticB = b;
+}
+
+void ledEffectsGetStaticColor(uint8_t& r, uint8_t& g, uint8_t& b) {
+  r = s_staticR;
+  g = s_staticG;
+  b = s_staticB;
 }
 
 void ledEffectsSetSpeed(float speed) {
@@ -115,300 +137,231 @@ void ledEffectsSetTargetFps(uint8_t fps) {
   s_targetFps = fps;
 }
 
-void ledEffectsSet(LedEffect e, int brightness) {
-  if (e >= LedEffect::Count) e = LedEffect::RainbowWave;
+uint8_t ledEffectsGetTargetFps() {
+  return s_targetFps;
+}
+
+void ledEffectsSet(LedEffect e) {
+  if (e >= LedEffect::Count) e = LedEffect::Aurora;
   s_effect = e;
   s_effectStartMs = millis();
-  ledStrip.setBrightness(brightness);  // reset so Breathing doesn't leave strip dim
+  ledStrip.setBrightness(s_brightness);
+  if (e == LedEffect::Rule30) effectRule30Reset();
 }
 
-String ledEffectsNext(int brightness) {
-  auto n = static_cast<uint8_t>(s_effect) + 1;
-  if (n >= static_cast<uint8_t>(LedEffect::Count)) n = 0;
-  ledEffectsSet(static_cast<LedEffect>(n), brightness);
-
-  // return name of new effect for display
-  return String(static_cast<int>(s_effect));
+void ledEffectsSetAccentColor(uint8_t r, uint8_t g, uint8_t b) {
+  s_accentR = r;
+  s_accentG = g;
+  s_accentB = b;
 }
 
-void ledEffectsPrev(int brightness) {
-  auto n = static_cast<uint8_t>(s_effect);
-  if (n == 0) n = static_cast<uint8_t>(LedEffect::Count) - 1;
-  else n -= 1;
-  ledEffectsSet(static_cast<LedEffect>(n), brightness);
+void ledEffectsGetAccentColor(uint8_t& r, uint8_t& g, uint8_t& b) {
+  r = s_accentR;
+  g = s_accentG;
+  b = s_accentB;
 }
 
-LedEffect ledEffectsCurrent() {
-  return s_effect;
+// Get color for an effect (custom -> global -> default accent)
+static void getEffectColor(LedEffect e, uint8_t& r, uint8_t& g, uint8_t& b) {
+  int idx = static_cast<int>(e);
+  if (idx >= 0 && idx < static_cast<int>(LedEffect::Count)) {
+    if (s_effectColors[idx].custom) {
+      r = s_effectColors[idx].r;
+      g = s_effectColors[idx].g;
+      b = s_effectColors[idx].b;
+      return;
+    }
+  }
+  // Fall back to global color
+  r = s_globalR;
+  g = s_globalG;
+  b = s_globalB;
 }
 
-// --- Time in seconds (scaled by speed). No delays. ---
+static void contextGetEffectColor(LedEffect e, uint8_t& r, uint8_t& g, uint8_t& b) {
+  getEffectColor(e, r, g, b);
+}
+
+// --- Time (scaled by speed). Used to fill context. ---
 static inline float effectTimeSec() {
-  return (float)(millis() - s_effectStartMs) * 0.001f * s_speed;
+  unsigned long now = millis();
+  unsigned long elapsed;
+  if (now >= s_effectStartMs) {
+    elapsed = now - s_effectStartMs;
+  } else {
+    elapsed = (ULONG_MAX - s_effectStartMs) + now + 1;
+  }
+  elapsed = elapsed % 86400000UL;
+  return (float)elapsed * 0.001f * s_speed;
 }
 
 static inline uint32_t effectTimeMs() {
-  return (uint32_t)((float)(millis() - s_effectStartMs) * s_speed);
+  unsigned long now = millis();
+  unsigned long elapsed;
+  if (now >= s_effectStartMs) {
+    elapsed = now - s_effectStartMs;
+  } else {
+    elapsed = (ULONG_MAX - s_effectStartMs) + now + 1;
+  }
+  elapsed = elapsed % 86400000UL;
+  float scaled = (float)elapsed * s_speed;
+  if (scaled > 4294967295.0f) scaled = fmodf(scaled, 4294967295.0f);
+  return (uint32_t)scaled;
 }
 
-// Throttle: only update strip at target FPS.
 static bool shouldDrawFrame() {
   unsigned long now = millis();
   unsigned long interval = 1000 / (unsigned long)s_targetFps;
-  if ((now - s_lastFrameMs) >= interval) {
+  unsigned long elapsed;
+  if (now >= s_lastFrameMs) {
+    elapsed = now - s_lastFrameMs;
+  } else {
+    elapsed = (ULONG_MAX - s_lastFrameMs) + now + 1;
+  }
+  if (elapsed >= interval) {
     s_lastFrameMs = now;
     return true;
   }
   return false;
 }
 
-// ----- Effects (all time-based, no delay) -----
-
-static void effectRainbowWave() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  float phase = t * 60.0f;  // hue travel speed
-  for (uint16_t i = 0; i < n; i++) {
-    float pos = (float)i / (float)(n > 1 ? n : 1);
-    uint8_t hue = (uint8_t)((uint32_t)(phase * 255.0f / 6.28318f + pos * 255.0f) % 256);
-    ledStrip.setPixelColor(i, hueToColor(hue));
-  }
-  ledStrip.show();
+void ledEffectsFillContext(EffectContext* ctx) {
+  if (!ctx) return;
+  ctx->strip = &ledStrip;
+  ctx->timeSec = effectTimeSec();
+  ctx->timeMs = effectTimeMs();
+  ctx->intensity = s_intensity;
+  ctx->speed = s_speed;
+  ctx->fireVariant = s_fireVariant;
+  ctx->staticR = s_staticR;
+  ctx->staticG = s_staticG;
+  ctx->staticB = s_staticB;
+  ctx->brightness = s_brightness;
+  ctx->getEffectColor = contextGetEffectColor;
 }
 
-static void effectFire() {
-  const uint16_t n = ledStrip.numPixels();
-  const uint16_t len = n + 2;
-  if (len > FIRE_HEAT_SIZE) return;
-
-  // Cool and propagate heat (classic fire algorithm)
-  for (uint16_t i = 0; i < len; i++) {
-    uint8_t v = (s_heat[i] + s_heat[i + 1] + s_heat[i + 2]) / 3;
-    if (v > 2) v -= 2;
-    else v = 0;
-    s_heat[i] = v;
+void ledEffectsSetEffectColor(LedEffect e, uint8_t r, uint8_t g, uint8_t b) {
+  int idx = static_cast<int>(e);
+  if (idx >= 0 && idx < static_cast<int>(LedEffect::Count)) {
+    s_effectColors[idx].r = r;
+    s_effectColors[idx].g = g;
+    s_effectColors[idx].b = b;
+    s_effectColors[idx].custom = true;
   }
-
-  // Spark at bottom (index len-1 is "below" first LED)
-  uint32_t seed = effectTimeMs() * 7919;
-  if (random(0, 100) < 45) {
-    uint8_t spark = 180 + (noise8(seed) % 76);
-    s_heat[len - 1] = (s_heat[len - 1] + spark) > 255 ? 255 : s_heat[len - 1] + spark;
-  }
-  s_heat[len - 2] = s_heat[len - 1];
-  s_heat[len - 1] = 0;
-
-  // Heat to color (black -> red -> orange -> yellow -> white)
-  for (uint16_t i = 0; i < n; i++) {
-    uint8_t h = s_heat[i + 2];
-    uint8_t r = h;
-    uint8_t g = scale8(h, 80);
-    uint8_t b = h > 160 ? (h - 160) * 2 : 0;
-    ledStrip.setPixelColor(i, r, g, b);
-  }
-  ledStrip.show();
 }
 
-static void effectMeteorShower() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  float tailLen = (float)n * 0.15f;
-  if (tailLen < 8) tailLen = 8;
-  float cycle = (float)n + tailLen;
-  float speed = cycle * 0.4f;  // one full cycle per ~2.5 sec
+void ledEffectsGetEffectColor(LedEffect e, uint8_t& r, uint8_t& g, uint8_t& b) {
+  getEffectColor(e, r, g, b);
+}
 
-  if (!s_meteorInited) {
-    for (int i = 0; i < METEOR_COUNT; i++)
-      s_meteorHue[i] = (i * 51) % 256;
-    s_meteorInited = true;
+void ledEffectsResetEffectColor(LedEffect e) {
+  int idx = static_cast<int>(e);
+  if (idx >= 0 && idx < static_cast<int>(LedEffect::Count)) {
+    s_effectColors[idx].custom = false;
   }
+}
 
-  ledStrip.clear();
-  for (int m = 0; m < METEOR_COUNT; m++) {
-    float phase = (float)m / (float)METEOR_COUNT;
-    float head = fmodf_positive(t * speed + phase * cycle, cycle);
-    uint8_t hr, hg, hb;
-    hueToRgb(s_meteorHue[m], hr, hg, hb);
-    for (float ti = 0; ti <= tailLen; ti += 1.0f) {
-      int16_t idx = (int16_t)(head - ti);
-      if (idx < 0 || (uint16_t)idx >= n) continue;
-      float f = 1.0f - ti / tailLen;
-      uint8_t bright = (uint8_t)(255.0f * f * f);
-      ledStrip.setPixelColor((uint16_t)idx,
-        scale8(hr, bright), scale8(hg, bright), scale8(hb, bright));
+bool ledEffectsHasEffectColor(LedEffect e) {
+  int idx = static_cast<int>(e);
+  if (idx >= 0 && idx < static_cast<int>(LedEffect::Count)) {
+    return s_effectColors[idx].custom;
+  }
+  return false;
+}
+
+void ledEffectsSetGlobalColor(uint8_t r, uint8_t g, uint8_t b) {
+  s_globalR = r;
+  s_globalG = g;
+  s_globalB = b;
+}
+
+void ledEffectsGetGlobalColor(uint8_t& r, uint8_t& g, uint8_t& b) {
+  r = s_globalR;
+  g = s_globalG;
+  b = s_globalB;
+}
+
+void ledEffectsSetIntensity(float intensity) {
+  if (intensity < 0.1f) intensity = 0.1f;
+  if (intensity > 3.0f) intensity = 3.0f;
+  s_intensity = intensity;
+}
+
+float ledEffectsGetIntensity() {
+  return s_intensity;
+}
+
+void ledEffectsSetFireVariant(FireVariant variant) {
+  s_fireVariant = variant;
+}
+
+FireVariant ledEffectsGetFireVariant() {
+  return s_fireVariant;
+}
+
+bool ledEffectsSetByName(const char* name) {
+  if (!name) return false;
+  const size_t n = sizeof(EFFECT_NAMES) / sizeof(EFFECT_NAMES[0]);
+  for (size_t i = 0; i < n; i++) {
+    if (strcmp(EFFECT_NAMES[i], name) == 0) {
+      ledEffectsSet(static_cast<LedEffect>(i));
+      return true;
     }
   }
-  ledStrip.show();
+  return false;
 }
 
-static void effectBreathing() {
-  float t = effectTimeSec();
-  float breath = 0.5f + 0.5f * (float)sin((double)(t * 0.5 * 2.0 * M_PI));
-  uint8_t b = (uint8_t)(30 + breath * 225);
-  ledStrip.setBrightness(b);
-  ledStrip.fill(255, 60, 20);
-  ledStrip.show();
+const char* ledEffectsNext() {
+  auto n = static_cast<uint8_t>(s_effect) + 1;
+  if (n >= static_cast<uint8_t>(LedEffect::Count)) n = 0;
+  ledEffectsSet(static_cast<LedEffect>(n));
+  return ledEffectsGetCurrentName();
 }
 
-static void effectComet() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  float speed = (float)n * 0.25f;
-  float head = fmodf_positive(t * speed, (float)(n + 40));
-  float tailLen = 28.0f;
-
-  ledStrip.clear();
-  for (float i = 0; i <= tailLen; i += 1.0f) {
-    int16_t idx = (int16_t)(head - i);
-    if (idx < 0 || (uint16_t)idx >= n) continue;
-    uint8_t bright = (uint8_t)(255.0f * (1.0f - i / tailLen));
-    ledStrip.setPixelColor((uint16_t)idx, bright, bright / 2, 0);
-  }
-  ledStrip.show();
+const char* ledEffectsPrev() {
+  auto n = static_cast<uint8_t>(s_effect);
+  if (n == 0) n = static_cast<uint8_t>(LedEffect::Count) - 1;
+  else n -= 1;
+  ledEffectsSet(static_cast<LedEffect>(n));
+  return ledEffectsGetCurrentName();
 }
 
-static void effectPlasma() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  for (uint16_t i = 0; i < n; i++) {
-    float x = (float)i / (float)(n > 1 ? n : 1);
-    float v = (float)sin((double)(x * 4.0 * M_PI + t * 2.0)) * 0.5f + 0.5f;
-    v += (float)sin((double)(x * 8.0 * M_PI - t * 1.5)) * 0.3f;
-    v += (float)sin((double)((x + t * 0.3) * 12.0 * M_PI)) * 0.2f;
-    if (v < 0) v = 0;
-    if (v > 1) v = 1;
-    uint8_t hue = (uint8_t)(v * 255.0f);
-    ledStrip.setPixelColor(i, hueToColor(hue));
-  }
-  ledStrip.show();
+LedEffect ledEffectsCurrent() {
+  return s_effect;
 }
 
-static void effectConfetti() {
-  const uint16_t n = ledStrip.numPixels();
-  if (n == 0) return;
-  float tSec = effectTimeSec();
-
-  if (!s_confettiInited) {
-    for (int i = 0; i < CONFETTI_PARTICLES; i++) {
-      s_confetti[i].phase = (float)i / (float)CONFETTI_PARTICLES;
-      s_confetti[i].hue = (uint8_t)((i * 37) % 256);
-      s_confetti[i].vel = 18.0f + (noise8((uint32_t)i * 123) % 20);
-    }
-    s_confettiInited = true;
+void ledEffectsDispatchUpdate(EffectContext* ctx) {
+  if (!ctx) return;
+  switch (s_effect) {
+    case LedEffect::RainbowCycle: effectRainbowCycle(*ctx); break;
+    case LedEffect::Fire:          effectFire(*ctx);         break;
+    case LedEffect::FireTop:       effectFireTop(*ctx);     break;
+    case LedEffect::MeteorShower:  effectMeteorShower(*ctx); break;
+    case LedEffect::Breathing:     effectBreathing(*ctx);    break;
+    case LedEffect::Comet:         effectComet(*ctx);       break;
+    case LedEffect::Plasma:        effectPlasma(*ctx);       break;
+    case LedEffect::Confetti:      effectConfetti(*ctx);     break;
+    case LedEffect::Twinkle:       effectTwinkle(*ctx);       break;
+    case LedEffect::Pride:         effectPride(*ctx);       break;
+    case LedEffect::Scanner:       effectScanner(*ctx);       break;
+    case LedEffect::ColorWipe:     effectColorWipe(*ctx);    break;
+    case LedEffect::TheaterChase:  effectTheaterChase(*ctx); break;
+    case LedEffect::StaticColor:   effectStaticColor(*ctx);  break;
+    case LedEffect::Rain:          effectRain(*ctx);         break;
+    case LedEffect::Candle:        effectCandle(*ctx);       break;
+    case LedEffect::Aurora:        effectAurora(*ctx);      break;
+    case LedEffect::Rule30:        effectRule30(*ctx);       break;
+    case LedEffect::Starfield:     effectStarfield(*ctx);   break;
+    case LedEffect::Sinelon:       effectSinelon(*ctx);     break;
+    case LedEffect::Noise:         effectNoise(*ctx);       break;
+    default:                       effectAurora(*ctx); break;
   }
-
-  ledStrip.clear();
-  float nf = (float)n;
-  for (int i = 0; i < CONFETTI_PARTICLES; i++) {
-    float pos = fmodf_positive(tSec * s_confetti[i].vel + s_confetti[i].phase * nf, nf);
-    uint16_t idx = (uint16_t)pos;
-    if (idx < n) {
-      uint8_t r, g, b;
-      hueToRgb(s_confetti[i].hue, r, g, b);
-      ledStrip.setPixelColor(idx, r, g, b);
-    }
-  }
-  ledStrip.show();
-}
-
-static void effectTwinkle() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  for (uint16_t i = 0; i < n; i++) {
-    float phase = (float)i * 0.17f + t * 3.0f;
-    float v = (float)sin((double)phase) * 0.5f + 0.5f;
-    v = v * v;  // sharper falloff
-    uint8_t hue = (uint8_t)((uint32_t)(t * 40.0f + (float)i * 2.0f) % 256);
-    uint8_t r, g, b;
-    hueToRgb(hue, r, g, b);
-    ledStrip.setPixelColor(i, scale8(r, (uint8_t)(v * 255)), scale8(g, (uint8_t)(v * 255)), scale8(b, (uint8_t)(v * 255)));
-  }
-  ledStrip.show();
-}
-
-static void effectPride() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  float phase = t * 80.0f;
-  for (uint16_t i = 0; i < n; i++) {
-    float pos = (float)i / (float)(n > 1 ? n : 1);
-    uint8_t hue = (uint8_t)((uint32_t)((uint32_t)(phase + pos * 255.0f)) % 256);
-    ledStrip.setPixelColor(i, hueToColor(hue));
-  }
-  ledStrip.show();
-}
-
-static void effectScanner() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  float period = (float)(n + SCANNER_WIDTH * 2) * 0.03f;
-  float phase = fmodf_positive(t, period * 2.0f);
-  float pos;
-  if (phase < period)
-    pos = phase / 0.03f;
-  else
-    pos = (period * 2.0f - phase) / 0.03f;
-
-  ledStrip.clear();
-  for (int w = -SCANNER_WIDTH; w <= SCANNER_WIDTH; w++) {
-    int16_t idx = (int16_t)(pos + w);
-    if (idx < 0 || (uint16_t)idx >= n) continue;
-    uint8_t bright = 255 - (uint8_t)((abs(w) * 255) / (SCANNER_WIDTH + 1));
-    ledStrip.setPixelColor((uint16_t)idx, 0, bright, 0);
-  }
-  ledStrip.show();
-}
-
-static void effectColorWipe() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  float period = (float)n * 0.03f;
-  float phase = fmodf_positive(t, period * 2.0f);
-  uint16_t edge = phase < period ? (uint16_t)(phase / 0.03f) : (uint16_t)((period * 2.0f - phase) / 0.03f);
-  if (edge > n) edge = n;
-
-  for (uint16_t i = 0; i < n; i++) {
-    if (i < edge)
-      ledStrip.setPixelColor(i, 0, 0, 150);
-    else
-      ledStrip.setPixelColor(i, 0, 0, 0);
-  }
-  ledStrip.show();
-}
-
-static void effectTheaterChase() {
-  const uint16_t n = ledStrip.numPixels();
-  float t = effectTimeSec();
-  const uint8_t spacing = 3;
-  float pos = fmodf_positive(t * 25.0f, (float)spacing);
-  uint16_t offset = (uint16_t)pos;
-
-  for (uint16_t i = 0; i < n; i++) {
-    if ((i + offset) % spacing == 0)
-      ledStrip.setPixelColor(i, 255, 255, 255);
-    else
-      ledStrip.setPixelColor(i, 0, 0, 0);
-  }
-  ledStrip.show();
 }
 
 void ledEffectsUpdate() {
   if (!shouldDrawFrame())
     return;
-
-  switch (s_effect) {
-    case LedEffect::RainbowWave:  effectRainbowWave();  break;
-    case LedEffect::Fire:         effectFire();         break;
-    case LedEffect::MeteorShower: effectMeteorShower(); break;
-    case LedEffect::Breathing:    effectBreathing();    break;
-    case LedEffect::Comet:        effectComet();        break;
-    case LedEffect::Plasma:       effectPlasma();       break;
-    case LedEffect::Confetti:     effectConfetti();     break;
-    case LedEffect::Twinkle:      effectTwinkle();      break;
-    case LedEffect::Pride:        effectPride();        break;
-    case LedEffect::Scanner:      effectScanner();      break;
-    case LedEffect::ColorWipe:    effectColorWipe();    break;
-    case LedEffect::TheaterChase: effectTheaterChase(); break;
-    default:                      effectRainbowWave(); break;
-  }
+  EffectContext ctx;
+  ledEffectsFillContext(&ctx);
+  ledEffectsDispatchUpdate(&ctx);
 }

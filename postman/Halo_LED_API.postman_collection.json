@@ -1,0 +1,207 @@
+{
+  "info": {
+    "name": "Halo LED API",
+    "description": "Control LED strip effects, brightness, color, and FPS via REST API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://10.16.111.22" }
+  ],
+  "item": [
+    {
+      "name": "Status",
+      "item": [
+        {
+          "name": "GET Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/status",
+            "description": "Get current effect name, brightness, and fps."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Effect",
+      "item": [
+        {
+          "name": "Next effect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/effect/next",
+            "description": "Cycle to next effect. Returns new effect name."
+          }
+        },
+        {
+          "name": "Prev effect",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/effect/prev",
+            "description": "Cycle to previous effect."
+          }
+        },
+        {
+          "name": "Set effect by name (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/effect?name=Fire",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "effect"],
+              "query": [{ "key": "name", "value": "Fire", "description": "Effect name: Fire, Aurora, Comet, etc." }]
+            },
+            "description": "Set effect by name. Try:  Aurora, Fire, FireTop, MeteorShower, Breathing, Comet, Plasma, Confetti, Twinkle, Pride, Scanner, ColorWipe, TheaterChase, StaticColor, Rain, Candle, RainbowCycle, Rule30, Starfield, Sinelon, Noise"
+          }
+        },
+        {
+          "name": "Set effect by name (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [{ "key": "name", "value": "Aurora" }]
+            },
+            "url": "{{baseUrl}}/api/effect",
+            "description": "Set effect via POST body (name=EffectName)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Brightness",
+      "item": [
+        {
+          "name": "Set brightness (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/brightness?value=200",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "brightness"],
+              "query": [{ "key": "value", "value": "200", "description": "0-255" }]
+            }
+          }
+        },
+        {
+          "name": "Set brightness (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [{ "key": "value", "value": "180" }]
+            },
+            "url": "{{baseUrl}}/api/brightness"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Color",
+      "item": [
+        {
+          "name": "Static color + switch to StaticColor (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/color?r=255&g=0&b=128",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "color"],
+              "query": [
+                { "key": "r", "value": "255" },
+                { "key": "g", "value": "0" },
+                { "key": "b", "value": "128" }
+              ]
+            },
+            "description": "Set static color and switch to StaticColor effect."
+          }
+        },
+        {
+          "name": "Static color (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "r", "value": "0" },
+                { "key": "g", "value": "255" },
+                { "key": "b", "value": "0" }
+              ]
+            },
+            "url": "{{baseUrl}}/api/color"
+          }
+        },
+        {
+          "name": "Set accent color (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/accent?r=255&g=100&b=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "accent"],
+              "query": [
+                { "key": "r", "value": "255" },
+                { "key": "g", "value": "100" },
+                { "key": "b", "value": "0" }
+              ]
+            },
+            "description": "Set accent color for effects that support it (Comet, Scanner, Rain, etc.)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "FPS",
+      "item": [
+        {
+          "name": "Set FPS (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/fps?value=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fps"],
+              "query": [{ "key": "value", "value": "50", "description": "10-100" }]
+            }
+          }
+        },
+        {
+          "name": "Set FPS (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [{ "key": "value", "value": "60" }]
+            },
+            "url": "{{baseUrl}}/api/fps"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Clear",
+      "item": [
+        {
+          "name": "Clear strip (all off)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/clear",
+            "description": "Turn all LEDs off."
+          }
+        }
+      ]
+    }
+  ]
+}
