@@ -1,9 +1,8 @@
 #ifndef OTA_TEST_CONFIG_H
 #define OTA_TEST_CONFIG_H
 
-// WiFi credentials for OTA and network
-#define WIFI_SSID     "REDACTED"
-#define WIFI_PASSWORD "REDACTED"
+// WiFi (define in wifi_credentials.h; copy wifi_credentials.h.example to get started)
+#include "wifi_credentials.h"
 
 // LED strip: pin and length
 #define LED_PIN   2
