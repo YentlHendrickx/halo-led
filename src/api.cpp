@@ -1,11 +1,11 @@
 #include "api.h"
 #include "config_store.h"
-#include "led_strip.h"
 #include "led_effects.h"
+#include "led_strip.h"
 #include <Arduino.h>
 #include <string.h>
 
-static void sendStatus(AsyncWebServerRequest* request) {
+static void sendStatus(AsyncWebServerRequest *request) {
   uint8_t ar, ag, ab;
   ledEffectsGetAccentColor(ar, ag, ab);
   uint8_t gr, gg, gb;
@@ -28,25 +28,25 @@ static void sendStatus(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", body);
 }
 
-static void handleEffectNext(AsyncWebServerRequest* request) {
+static void handleEffectNext(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
   }
-  const char* name = ledEffectsNext();
+  const char *name = ledEffectsNext();
   request->send(200, "text/plain", String("effect: ") + name);
 }
 
-static void handleEffectPrev(AsyncWebServerRequest* request) {
+static void handleEffectPrev(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
   }
-  const char* name = ledEffectsPrev();
+  const char *name = ledEffectsPrev();
   request->send(200, "text/plain", String("effect: ") + name);
 }
 
-static void handleEffectSet(AsyncWebServerRequest* request) {
+static void handleEffectSet(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -61,10 +61,11 @@ static void handleEffectSet(AsyncWebServerRequest* request) {
     request->send(400, "text/plain", "unknown effect");
     return;
   }
-  request->send(200, "text/plain", String("effect: ") + ledEffectsGetCurrentName());
+  request->send(200, "text/plain",
+                String("effect: ") + ledEffectsGetCurrentName());
 }
 
-static void handleBrightness(AsyncWebServerRequest* request) {
+static void handleBrightness(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -83,13 +84,14 @@ static void handleBrightness(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", String("brightness: ") + String(v));
 }
 
-static void handleColor(AsyncWebServerRequest* request) {
+static void handleColor(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
   }
   bool post = (request->method() == HTTP_POST);
-  if (!request->hasParam("r", post) || !request->hasParam("g", post) || !request->hasParam("b", post)) {
+  if (!request->hasParam("r", post) || !request->hasParam("g", post) ||
+      !request->hasParam("b", post)) {
     request->send(400, "text/plain", "missing r,g,b");
     return;
   }
@@ -105,7 +107,7 @@ static void handleColor(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", "effect: StaticColor");
 }
 
-static void handleClear(AsyncWebServerRequest* request) {
+static void handleClear(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -115,7 +117,7 @@ static void handleClear(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", "ok");
 }
 
-static void handleSpeed(AsyncWebServerRequest* request) {
+static void handleSpeed(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -134,7 +136,7 @@ static void handleSpeed(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", String("speed: ") + String(v));
 }
 
-static void handleFps(AsyncWebServerRequest* request) {
+static void handleFps(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -153,13 +155,14 @@ static void handleFps(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", String("fps: ") + String(v));
 }
 
-static void handleAccent(AsyncWebServerRequest* request) {
+static void handleAccent(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
   }
   bool post = (request->method() == HTTP_POST);
-  if (!request->hasParam("r", post) || !request->hasParam("g", post) || !request->hasParam("b", post)) {
+  if (!request->hasParam("r", post) || !request->hasParam("g", post) ||
+      !request->hasParam("b", post)) {
     request->send(400, "text/plain", "missing r,g,b");
     return;
   }
@@ -171,16 +174,19 @@ static void handleAccent(AsyncWebServerRequest* request) {
     return;
   }
   ledEffectsSetAccentColor((uint8_t)r, (uint8_t)g, (uint8_t)b);
-  request->send(200, "text/plain", String("accent: ") + String(r) + "," + String(g) + "," + String(b));
+  request->send(200, "text/plain",
+                String("accent: ") + String(r) + "," + String(g) + "," +
+                    String(b));
 }
 
-static void handleGlobalColor(AsyncWebServerRequest* request) {
+static void handleGlobalColor(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
   }
   bool post = (request->method() == HTTP_POST);
-  if (!request->hasParam("r", post) || !request->hasParam("g", post) || !request->hasParam("b", post)) {
+  if (!request->hasParam("r", post) || !request->hasParam("g", post) ||
+      !request->hasParam("b", post)) {
     request->send(400, "text/plain", "missing r,g,b");
     return;
   }
@@ -192,22 +198,24 @@ static void handleGlobalColor(AsyncWebServerRequest* request) {
     return;
   }
   ledEffectsSetGlobalColor((uint8_t)r, (uint8_t)g, (uint8_t)b);
-  request->send(200, "text/plain", String("global-color: ") + String(r) + "," + String(g) + "," + String(b));
+  request->send(200, "text/plain",
+                String("global-color: ") + String(r) + "," + String(g) + "," +
+                    String(b));
 }
 
 // Helper to get LedEffect from name without setting it
-static LedEffect getEffectFromName(const char* name) {
-  const char* const* names = ledEffectsGetNames();
+static LedEffect getEffectFromName(const char *name) {
+  const char *const *names = ledEffectsGetNames();
   int n = ledEffectsGetNameCount();
   for (int i = 0; i < n; i++) {
     if (strcmp(names[i], name) == 0) {
       return static_cast<LedEffect>(i);
     }
   }
-  return LedEffect::Count;  // Invalid
+  return LedEffect::Count; // Invalid
 }
 
-static void handleEffectColor(AsyncWebServerRequest* request) {
+static void handleEffectColor(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -218,27 +226,30 @@ static void handleEffectColor(AsyncWebServerRequest* request) {
     return;
   }
   String effectName = request->getParam("effect", post)->value();
-  
+
   // Get effect enum from name
   LedEffect e = getEffectFromName(effectName.c_str());
   if (e == LedEffect::Count) {
     request->send(400, "text/plain", "unknown effect");
     return;
   }
-  
+
   // Check if it's a reset request
-  if (request->hasParam("reset", post) && request->getParam("reset", post)->value() == "true") {
+  if (request->hasParam("reset", post) &&
+      request->getParam("reset", post)->value() == "true") {
     ledEffectsResetEffectColor(e);
-    request->send(200, "text/plain", String("effect-color: ") + effectName + " reset to default");
+    request->send(200, "text/plain",
+                  String("effect-color: ") + effectName + " reset to default");
     return;
   }
-  
+
   // Set color for effect
-  if (!request->hasParam("r", post) || !request->hasParam("g", post) || !request->hasParam("b", post)) {
+  if (!request->hasParam("r", post) || !request->hasParam("g", post) ||
+      !request->hasParam("b", post)) {
     request->send(400, "text/plain", "missing r,g,b or reset=true");
     return;
   }
-  
+
   int r = request->getParam("r", post)->value().toInt();
   int g = request->getParam("g", post)->value().toInt();
   int b = request->getParam("b", post)->value().toInt();
@@ -247,10 +258,12 @@ static void handleEffectColor(AsyncWebServerRequest* request) {
     return;
   }
   ledEffectsSetEffectColor(e, (uint8_t)r, (uint8_t)g, (uint8_t)b);
-  request->send(200, "text/plain", String("effect-color: ") + effectName + " " + String(r) + "," + String(g) + "," + String(b));
+  request->send(200, "text/plain",
+                String("effect-color: ") + effectName + " " + String(r) + "," +
+                    String(g) + "," + String(b));
 }
 
-static void handleIntensity(AsyncWebServerRequest* request) {
+static void handleIntensity(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -269,7 +282,7 @@ static void handleIntensity(AsyncWebServerRequest* request) {
   request->send(200, "text/plain", String("intensity: ") + String(v));
 }
 
-static void handleFireVariant(AsyncWebServerRequest* request) {
+static void handleFireVariant(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -297,7 +310,7 @@ static void handleFireVariant(AsyncWebServerRequest* request) {
   }
 }
 
-static void handleConfigStore(AsyncWebServerRequest* request) {
+static void handleConfigStore(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -309,7 +322,7 @@ static void handleConfigStore(AsyncWebServerRequest* request) {
   }
 }
 
-static void handleConfigClear(AsyncWebServerRequest* request) {
+static void handleConfigClear(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
     return;
@@ -322,7 +335,7 @@ static void handleConfigClear(AsyncWebServerRequest* request) {
   }
 }
 
-void apiRegister(AsyncWebServer* server) {
+void apiRegister(AsyncWebServer *server) {
   server->on("/api/status", HTTP_GET, sendStatus);
 
   server->on("/api/effect/next", HTTP_GET, handleEffectNext);

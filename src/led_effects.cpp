@@ -1,21 +1,21 @@
 #include "led_effects.h"
-#include "led_strip.h"
 #include "effect_context.h"
+#include "led_strip.h"
+#include <climits>
 #include <math.h>
 #include <string.h>
-#include <climits>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-
 // Effect names (must match enum order).
-static const char* const EFFECT_NAMES[] = {
-  "Aurora", "Fire", "FireTop", "MeteorShower", "Breathing", "Comet", "Plasma",
-  "Confetti", "Twinkle", "Pride", "Scanner", "ColorWipe", "TheaterChase",
-  "StaticColor", "Rain", "Candle", "RainbowCycle", "Rule30", "Starfield", "Sinelon", "Noise"
-};
+static const char *const EFFECT_NAMES[] = {
+    "Aurora",  "Fire",         "FireTop",      "MeteorShower", "Breathing",
+    "Comet",   "Plasma",       "Confetti",     "Twinkle",      "Pride",
+    "Scanner", "ColorWipe",    "TheaterChase", "StaticColor",  "Rain",
+    "Candle",  "RainbowCycle", "Rule30",       "Starfield",    "Sinelon",
+    "Noise"};
 
 // --- Engine state ---
 static LedEffect s_effect = LedEffect::Aurora;
@@ -27,14 +27,16 @@ static uint8_t s_targetFps = 50;
 static unsigned long s_effectStartMs = 0;
 static uint8_t s_brightness = 200;
 static uint8_t s_staticR = 255, s_staticG = 100, s_staticB = 50;
-static uint8_t s_accentR = 255, s_accentG = 120, s_accentB = 40;  // warm orange default
+static uint8_t s_accentR = 255, s_accentG = 120,
+               s_accentB = 40; // warm orange default
 // Global color (used by effects without custom colors)
-static uint8_t s_globalR = 255, s_globalG = 120, s_globalB = 40;  // warm orange default
+static uint8_t s_globalR = 255, s_globalG = 120,
+               s_globalB = 40; // warm orange default
 
 // Per-effect colors (nullptr = use global/default)
 struct EffectColor {
   uint8_t r, g, b;
-  bool custom;  // true if custom color set, false if using default
+  bool custom; // true if custom color set, false if using default
 };
 static EffectColor s_effectColors[static_cast<int>(LedEffect::Count)];
 
@@ -87,23 +89,18 @@ void ledEffectsSetBrightness(uint8_t b) {
   ledStrip.setBrightness(b);
 }
 
-uint8_t ledEffectsGetBrightness() {
-  return s_brightness;
-}
+uint8_t ledEffectsGetBrightness() { return s_brightness; }
 
-const char* ledEffectsGetCurrentName() {
+const char *ledEffectsGetCurrentName() {
   uint8_t idx = static_cast<uint8_t>(s_effect);
-  if (idx >= sizeof(EFFECT_NAMES) / sizeof(EFFECT_NAMES[0])) return "?";
+  if (idx >= sizeof(EFFECT_NAMES) / sizeof(EFFECT_NAMES[0]))
+    return "?";
   return EFFECT_NAMES[idx];
 }
 
-const char* const* ledEffectsGetNames() {
-  return EFFECT_NAMES;
-}
+const char *const *ledEffectsGetNames() { return EFFECT_NAMES; }
 
-int ledEffectsGetNameCount() {
-  return static_cast<int>(LedEffect::Count);
-}
+int ledEffectsGetNameCount() { return static_cast<int>(LedEffect::Count); }
 
 void ledEffectsSetStaticColor(uint8_t r, uint8_t g, uint8_t b) {
   s_staticR = r;
@@ -111,42 +108,42 @@ void ledEffectsSetStaticColor(uint8_t r, uint8_t g, uint8_t b) {
   s_staticB = b;
 }
 
-void ledEffectsGetStaticColor(uint8_t& r, uint8_t& g, uint8_t& b) {
+void ledEffectsGetStaticColor(uint8_t &r, uint8_t &g, uint8_t &b) {
   r = s_staticR;
   g = s_staticG;
   b = s_staticB;
 }
 
 void ledEffectsSetSpeed(float speed) {
-  if (speed < 0.1f) speed = 0.1f;
-  if (speed > 4.0f) speed = 4.0f;
+  if (speed < 0.1f)
+    speed = 0.1f;
+  if (speed > 4.0f)
+    speed = 4.0f;
   s_speed = speed;
 }
 
-float ledEffectsGetSpeed() {
-  return s_speed;
-}
+float ledEffectsGetSpeed() { return s_speed; }
 
-void ledEffectsSetAutoCycleMs(unsigned long ms) {
-  s_autoCycleMs = ms;
-}
+void ledEffectsSetAutoCycleMs(unsigned long ms) { s_autoCycleMs = ms; }
 
 void ledEffectsSetTargetFps(uint8_t fps) {
-  if (fps < 10) fps = 10;
-  if (fps > 100) fps = 100;
+  if (fps < 10)
+    fps = 10;
+  if (fps > 100)
+    fps = 100;
   s_targetFps = fps;
 }
 
-uint8_t ledEffectsGetTargetFps() {
-  return s_targetFps;
-}
+uint8_t ledEffectsGetTargetFps() { return s_targetFps; }
 
 void ledEffectsSet(LedEffect e) {
-  if (e >= LedEffect::Count) e = LedEffect::Aurora;
+  if (e >= LedEffect::Count)
+    e = LedEffect::Aurora;
   s_effect = e;
   s_effectStartMs = millis();
   ledStrip.setBrightness(s_brightness);
-  if (e == LedEffect::Rule30) effectRule30Reset();
+  if (e == LedEffect::Rule30)
+    effectRule30Reset();
 }
 
 void ledEffectsSetAccentColor(uint8_t r, uint8_t g, uint8_t b) {
@@ -155,14 +152,14 @@ void ledEffectsSetAccentColor(uint8_t r, uint8_t g, uint8_t b) {
   s_accentB = b;
 }
 
-void ledEffectsGetAccentColor(uint8_t& r, uint8_t& g, uint8_t& b) {
+void ledEffectsGetAccentColor(uint8_t &r, uint8_t &g, uint8_t &b) {
   r = s_accentR;
   g = s_accentG;
   b = s_accentB;
 }
 
 // Get color for an effect (custom -> global -> default accent)
-static void getEffectColor(LedEffect e, uint8_t& r, uint8_t& g, uint8_t& b) {
+static void getEffectColor(LedEffect e, uint8_t &r, uint8_t &g, uint8_t &b) {
   int idx = static_cast<int>(e);
   if (idx >= 0 && idx < static_cast<int>(LedEffect::Count)) {
     if (s_effectColors[idx].custom) {
@@ -178,7 +175,8 @@ static void getEffectColor(LedEffect e, uint8_t& r, uint8_t& g, uint8_t& b) {
   b = s_globalB;
 }
 
-static void contextGetEffectColor(LedEffect e, uint8_t& r, uint8_t& g, uint8_t& b) {
+static void contextGetEffectColor(LedEffect e, uint8_t &r, uint8_t &g,
+                                  uint8_t &b) {
   getEffectColor(e, r, g, b);
 }
 
@@ -205,7 +203,8 @@ static inline uint32_t effectTimeMs() {
   }
   elapsed = elapsed % 86400000UL;
   float scaled = (float)elapsed * s_speed;
-  if (scaled > 4294967295.0f) scaled = fmodf(scaled, 4294967295.0f);
+  if (scaled > 4294967295.0f)
+    scaled = fmodf(scaled, 4294967295.0f);
   return (uint32_t)scaled;
 }
 
@@ -225,8 +224,9 @@ static bool shouldDrawFrame() {
   return false;
 }
 
-void ledEffectsFillContext(EffectContext* ctx) {
-  if (!ctx) return;
+void ledEffectsFillContext(EffectContext *ctx) {
+  if (!ctx)
+    return;
   ctx->strip = &ledStrip;
   ctx->timeSec = effectTimeSec();
   ctx->timeMs = effectTimeMs();
@@ -250,7 +250,7 @@ void ledEffectsSetEffectColor(LedEffect e, uint8_t r, uint8_t g, uint8_t b) {
   }
 }
 
-void ledEffectsGetEffectColor(LedEffect e, uint8_t& r, uint8_t& g, uint8_t& b) {
+void ledEffectsGetEffectColor(LedEffect e, uint8_t &r, uint8_t &g, uint8_t &b) {
   getEffectColor(e, r, g, b);
 }
 
@@ -275,32 +275,29 @@ void ledEffectsSetGlobalColor(uint8_t r, uint8_t g, uint8_t b) {
   s_globalB = b;
 }
 
-void ledEffectsGetGlobalColor(uint8_t& r, uint8_t& g, uint8_t& b) {
+void ledEffectsGetGlobalColor(uint8_t &r, uint8_t &g, uint8_t &b) {
   r = s_globalR;
   g = s_globalG;
   b = s_globalB;
 }
 
 void ledEffectsSetIntensity(float intensity) {
-  if (intensity < 0.1f) intensity = 0.1f;
-  if (intensity > 3.0f) intensity = 3.0f;
+  if (intensity < 0.1f)
+    intensity = 0.1f;
+  if (intensity > 3.0f)
+    intensity = 3.0f;
   s_intensity = intensity;
 }
 
-float ledEffectsGetIntensity() {
-  return s_intensity;
-}
+float ledEffectsGetIntensity() { return s_intensity; }
 
-void ledEffectsSetFireVariant(FireVariant variant) {
-  s_fireVariant = variant;
-}
+void ledEffectsSetFireVariant(FireVariant variant) { s_fireVariant = variant; }
 
-FireVariant ledEffectsGetFireVariant() {
-  return s_fireVariant;
-}
+FireVariant ledEffectsGetFireVariant() { return s_fireVariant; }
 
-bool ledEffectsSetByName(const char* name) {
-  if (!name) return false;
+bool ledEffectsSetByName(const char *name) {
+  if (!name)
+    return false;
   const size_t n = sizeof(EFFECT_NAMES) / sizeof(EFFECT_NAMES[0]);
   for (size_t i = 0; i < n; i++) {
     if (strcmp(EFFECT_NAMES[i], name) == 0) {
@@ -311,50 +308,96 @@ bool ledEffectsSetByName(const char* name) {
   return false;
 }
 
-const char* ledEffectsNext() {
+const char *ledEffectsNext() {
   auto n = static_cast<uint8_t>(s_effect) + 1;
-  if (n >= static_cast<uint8_t>(LedEffect::Count)) n = 0;
+  if (n >= static_cast<uint8_t>(LedEffect::Count))
+    n = 0;
   ledEffectsSet(static_cast<LedEffect>(n));
   return ledEffectsGetCurrentName();
 }
 
-const char* ledEffectsPrev() {
+const char *ledEffectsPrev() {
   auto n = static_cast<uint8_t>(s_effect);
-  if (n == 0) n = static_cast<uint8_t>(LedEffect::Count) - 1;
-  else n -= 1;
+  if (n == 0)
+    n = static_cast<uint8_t>(LedEffect::Count) - 1;
+  else
+    n -= 1;
   ledEffectsSet(static_cast<LedEffect>(n));
   return ledEffectsGetCurrentName();
 }
 
-LedEffect ledEffectsCurrent() {
-  return s_effect;
-}
+LedEffect ledEffectsCurrent() { return s_effect; }
 
-void ledEffectsDispatchUpdate(EffectContext* ctx) {
-  if (!ctx) return;
+void ledEffectsDispatchUpdate(EffectContext *ctx) {
+  if (!ctx)
+    return;
   switch (s_effect) {
-    case LedEffect::RainbowCycle: effectRainbowCycle(*ctx); break;
-    case LedEffect::Fire:          effectFire(*ctx);         break;
-    case LedEffect::FireTop:       effectFireTop(*ctx);     break;
-    case LedEffect::MeteorShower:  effectMeteorShower(*ctx); break;
-    case LedEffect::Breathing:     effectBreathing(*ctx);    break;
-    case LedEffect::Comet:         effectComet(*ctx);       break;
-    case LedEffect::Plasma:        effectPlasma(*ctx);       break;
-    case LedEffect::Confetti:      effectConfetti(*ctx);     break;
-    case LedEffect::Twinkle:       effectTwinkle(*ctx);       break;
-    case LedEffect::Pride:         effectPride(*ctx);       break;
-    case LedEffect::Scanner:       effectScanner(*ctx);       break;
-    case LedEffect::ColorWipe:     effectColorWipe(*ctx);    break;
-    case LedEffect::TheaterChase:  effectTheaterChase(*ctx); break;
-    case LedEffect::StaticColor:   effectStaticColor(*ctx);  break;
-    case LedEffect::Rain:          effectRain(*ctx);         break;
-    case LedEffect::Candle:        effectCandle(*ctx);       break;
-    case LedEffect::Aurora:        effectAurora(*ctx);      break;
-    case LedEffect::Rule30:        effectRule30(*ctx);       break;
-    case LedEffect::Starfield:     effectStarfield(*ctx);   break;
-    case LedEffect::Sinelon:       effectSinelon(*ctx);     break;
-    case LedEffect::Noise:         effectNoise(*ctx);       break;
-    default:                       effectAurora(*ctx); break;
+  case LedEffect::RainbowCycle:
+    effectRainbowCycle(*ctx);
+    break;
+  case LedEffect::Fire:
+    effectFire(*ctx);
+    break;
+  case LedEffect::FireTop:
+    effectFireTop(*ctx);
+    break;
+  case LedEffect::MeteorShower:
+    effectMeteorShower(*ctx);
+    break;
+  case LedEffect::Breathing:
+    effectBreathing(*ctx);
+    break;
+  case LedEffect::Comet:
+    effectComet(*ctx);
+    break;
+  case LedEffect::Plasma:
+    effectPlasma(*ctx);
+    break;
+  case LedEffect::Confetti:
+    effectConfetti(*ctx);
+    break;
+  case LedEffect::Twinkle:
+    effectTwinkle(*ctx);
+    break;
+  case LedEffect::Pride:
+    effectPride(*ctx);
+    break;
+  case LedEffect::Scanner:
+    effectScanner(*ctx);
+    break;
+  case LedEffect::ColorWipe:
+    effectColorWipe(*ctx);
+    break;
+  case LedEffect::TheaterChase:
+    effectTheaterChase(*ctx);
+    break;
+  case LedEffect::StaticColor:
+    effectStaticColor(*ctx);
+    break;
+  case LedEffect::Rain:
+    effectRain(*ctx);
+    break;
+  case LedEffect::Candle:
+    effectCandle(*ctx);
+    break;
+  case LedEffect::Aurora:
+    effectAurora(*ctx);
+    break;
+  case LedEffect::Rule30:
+    effectRule30(*ctx);
+    break;
+  case LedEffect::Starfield:
+    effectStarfield(*ctx);
+    break;
+  case LedEffect::Sinelon:
+    effectSinelon(*ctx);
+    break;
+  case LedEffect::Noise:
+    effectNoise(*ctx);
+    break;
+  default:
+    effectAurora(*ctx);
+    break;
   }
 }
 

@@ -1,11 +1,11 @@
 #include "web_serial_ui.h"
 #include "config.h"
 #include "config_store.h"
-#include "led_strip.h"
 #include "led_effects.h"
+#include "led_strip.h"
 #include <ESPAsyncWebServer.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #if ENABLE_WEB_SERIAL
 #include <WebSerial.h>
@@ -15,7 +15,7 @@ static char s_cmdBuf[64];
 
 #if ENABLE_WEB_SERIAL
 
-static const char* trimCommand(uint8_t* data, size_t len) {
+static const char *trimCommand(uint8_t *data, size_t len) {
   size_t copyLen = len < sizeof(s_cmdBuf) - 1 ? len : sizeof(s_cmdBuf) - 1;
   memcpy(s_cmdBuf, data, copyLen);
   s_cmdBuf[copyLen] = '\0';
@@ -25,24 +25,25 @@ static const char* trimCommand(uint8_t* data, size_t len) {
       break;
     }
   }
-  char* p = s_cmdBuf;
-  while (*p == ' ' || *p == '\r' || *p == '\n') p++;
-  if (*p == '\0') return nullptr;
+  char *p = s_cmdBuf;
+  while (*p == ' ' || *p == '\r' || *p == '\n')
+    p++;
+  if (*p == '\0')
+    return nullptr;
   return p;
 }
 
-static void reply(const char* msg) {
-  WebSerial.println(msg);
-}
+static void reply(const char *msg) { WebSerial.println(msg); }
 
-static void replyEffect(const char* name) {
+static void replyEffect(const char *name) {
   WebSerial.print("effect: ");
   WebSerial.println(name);
 }
 
-static void onMessage(uint8_t* data, size_t len) {
-  const char* cmd = trimCommand(data, len);
-  if (!cmd) return;
+static void onMessage(uint8_t *data, size_t len) {
+  const char *cmd = trimCommand(data, len);
+  if (!cmd)
+    return;
 
   if (strcmp(cmd, "next") == 0) {
     replyEffect(ledEffectsNext());
@@ -125,8 +126,8 @@ static void onMessage(uint8_t* data, size_t len) {
 
   if (strncmp(cmd, "color-", 6) == 0) {
     int r = -1, g = -1, b = -1;
-    if (sscanf(cmd + 6, "%d,%d,%d", &r, &g, &b) == 3 &&
-        r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
+    if (sscanf(cmd + 6, "%d,%d,%d", &r, &g, &b) == 3 && r >= 0 && r <= 255 &&
+        g >= 0 && g <= 255 && b >= 0 && b <= 255) {
       ledEffectsSetStaticColor((uint8_t)r, (uint8_t)g, (uint8_t)b);
       ledEffectsSet(LedEffect::StaticColor);
       replyEffect("StaticColor");
@@ -144,8 +145,8 @@ static void onMessage(uint8_t* data, size_t len) {
 
   if (strncmp(cmd, "accent-", 7) == 0) {
     int r = -1, g = -1, b = -1;
-    if (sscanf(cmd + 7, "%d,%d,%d", &r, &g, &b) == 3 &&
-        r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
+    if (sscanf(cmd + 7, "%d,%d,%d", &r, &g, &b) == 3 && r >= 0 && r <= 255 &&
+        g >= 0 && g <= 255 && b >= 0 && b <= 255) {
       ledEffectsSetAccentColor((uint8_t)r, (uint8_t)g, (uint8_t)b);
       WebSerial.print("accent: ");
       WebSerial.print(r);
@@ -162,8 +163,8 @@ static void onMessage(uint8_t* data, size_t len) {
   // Global color: global-color-R,G,B
   if (strncmp(cmd, "global-color-", 13) == 0) {
     int r = -1, g = -1, b = -1;
-    if (sscanf(cmd + 13, "%d,%d,%d", &r, &g, &b) == 3 &&
-        r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
+    if (sscanf(cmd + 13, "%d,%d,%d", &r, &g, &b) == 3 && r >= 0 && r <= 255 &&
+        g >= 0 && g <= 255 && b >= 0 && b <= 255) {
       ledEffectsSetGlobalColor((uint8_t)r, (uint8_t)g, (uint8_t)b);
       WebSerial.print("global-color: ");
       WebSerial.print(r);
@@ -178,22 +179,23 @@ static void onMessage(uint8_t* data, size_t len) {
   }
 
   // Per-effect color: effectname-color-R,G,B or effectname-color-default
-  const char* const* effectNames = ledEffectsGetNames();
+  const char *const *effectNames = ledEffectsGetNames();
   int nameCount = ledEffectsGetNameCount();
   for (int i = 0; i < nameCount; i++) {
     char pattern[64];
     snprintf(pattern, sizeof(pattern), "%s-color-", effectNames[i]);
     if (strncmp(cmd, pattern, strlen(pattern)) == 0) {
-      const char* colorPart = cmd + strlen(pattern);
+      const char *colorPart = cmd + strlen(pattern);
       if (strcmp(colorPart, "default") == 0) {
         ledEffectsResetEffectColor(static_cast<LedEffect>(i));
         WebSerial.print(effectNames[i]);
         WebSerial.println("-color: default");
       } else {
         int r = -1, g = -1, b = -1;
-        if (sscanf(colorPart, "%d,%d,%d", &r, &g, &b) == 3 &&
-            r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
-          ledEffectsSetEffectColor(static_cast<LedEffect>(i), (uint8_t)r, (uint8_t)g, (uint8_t)b);
+        if (sscanf(colorPart, "%d,%d,%d", &r, &g, &b) == 3 && r >= 0 &&
+            r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
+          ledEffectsSetEffectColor(static_cast<LedEffect>(i), (uint8_t)r,
+                                   (uint8_t)g, (uint8_t)b);
           WebSerial.print(effectNames[i]);
           WebSerial.print("-color: ");
           WebSerial.print(r);
@@ -224,7 +226,7 @@ static void onMessage(uint8_t* data, size_t len) {
 
   // Fire variant: fire-variant-red or fire-variant-blue
   if (strncmp(cmd, "fire-variant-", 13) == 0) {
-    const char* variant = cmd + 13;
+    const char *variant = cmd + 13;
     if (strcmp(variant, "red") == 0) {
       ledEffectsSetFireVariant(FireVariant::Red);
       reply("fire-variant: red");
@@ -242,9 +244,10 @@ static void onMessage(uint8_t* data, size_t len) {
 
 #endif /* ENABLE_WEB_SERIAL */
 
-void webSerialUiBegin(AsyncWebServer* server) {
+void webSerialUiBegin(AsyncWebServer *server) {
 #if ENABLE_WEB_SERIAL
-  if (!server) return;
+  if (!server)
+    return;
   WebSerial.begin(server);
   WebSerial.onMessage(onMessage);
   reply("ready");
@@ -254,9 +257,10 @@ void webSerialUiBegin(AsyncWebServer* server) {
 #endif
 }
 
-void webSerialLog(const char* msg) {
+void webSerialLog(const char *msg) {
 #if ENABLE_WEB_SERIAL
-  if (msg) WebSerial.println(msg);
+  if (msg)
+    WebSerial.println(msg);
 #else
   (void)msg;
 #endif

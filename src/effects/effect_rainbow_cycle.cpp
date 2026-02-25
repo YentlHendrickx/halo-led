@@ -1,7 +1,7 @@
-#include "effect_context.h"
 #include "effect_common.h"
+#include "effect_context.h"
 
-void effectRainbowCycle(EffectContext& ctx) {
+void effectRainbowCycle(EffectContext &ctx) {
   const uint16_t n = ctx.strip->numPixels();
   float t = ctx.timeSec;
   t = effect_common::fmodf_positive(t, 10.0f);

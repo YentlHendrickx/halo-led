@@ -1,7 +1,7 @@
 #include "ota.h"
 #include "config.h"
-#include <ESP8266WiFi.h>
 #include <ArduinoOTA.h>
+#include <ESP8266WiFi.h>
 
 void otaConnectWiFi() {
   Serial.print("TRYING TO CONNECT");
@@ -17,31 +17,40 @@ void otaConnectWiFi() {
 }
 
 void otaBegin() {
-  ArduinoOTA.onStart([]() {
-    Serial.println("OTA Start");
-  });
+  ArduinoOTA.onStart([]() { Serial.println("OTA Start"); });
   ArduinoOTA.onEnd([]() {
     Serial.println("OTA End");
     Serial.println("Rebooting...");
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\r\n", (total ? (progress / (total / 100)) : 0));
+    Serial.printf("Progress: %u%%\r\n",
+                  (total ? (progress / (total / 100)) : 0));
   });
   ArduinoOTA.onError([](ota_error_t error) {
     Serial.printf("Error[%u]: ", error);
     switch (error) {
-      case OTA_AUTH_ERROR:    Serial.println("Auth Failed");    break;
-      case OTA_BEGIN_ERROR:   Serial.println("Begin Failed");   break;
-      case OTA_CONNECT_ERROR: Serial.println("Connect Failed");  break;
-      case OTA_RECEIVE_ERROR: Serial.println("Receive Failed");  break;
-      case OTA_END_ERROR:     Serial.println("End Failed");      break;
-      default:                Serial.println("Unknown");         break;
+    case OTA_AUTH_ERROR:
+      Serial.println("Auth Failed");
+      break;
+    case OTA_BEGIN_ERROR:
+      Serial.println("Begin Failed");
+      break;
+    case OTA_CONNECT_ERROR:
+      Serial.println("Connect Failed");
+      break;
+    case OTA_RECEIVE_ERROR:
+      Serial.println("Receive Failed");
+      break;
+    case OTA_END_ERROR:
+      Serial.println("End Failed");
+      break;
+    default:
+      Serial.println("Unknown");
+      break;
     }
   });
   ArduinoOTA.begin();
   Serial.println("OTA Ready");
 }
 
-void otaHandle() {
-  ArduinoOTA.handle();
-}
+void otaHandle() { ArduinoOTA.handle(); }

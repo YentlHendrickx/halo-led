@@ -1,7 +1,7 @@
-#include "effect_context.h"
-#include "effect_common.h"
-#include "led_effects.h"
 #include "config.h"
+#include "effect_common.h"
+#include "effect_context.h"
+#include "led_effects.h"
 #include <Arduino.h>
 #include <limits.h>
 
@@ -10,17 +10,18 @@ static uint8_t s_rule30[RULE30_SIZE];
 static bool s_rule30Inited = false;
 static unsigned long s_rule30LastStep = 0;
 
-void effectRule30Reset() {
-  s_rule30Inited = false;
-}
+void effectRule30Reset() { s_rule30Inited = false; }
 
-void effectRule30(EffectContext& ctx) {
+void effectRule30(EffectContext &ctx) {
   const uint16_t n = ctx.strip->numPixels();
-  if (n == 0) return;
-  if (n > RULE30_SIZE) return;
+  if (n == 0)
+    return;
+  if (n > RULE30_SIZE)
+    return;
 
   if (!s_rule30Inited) {
-    for (uint16_t i = 0; i < n; i++) s_rule30[i] = 0;
+    for (uint16_t i = 0; i < n; i++)
+      s_rule30[i] = 0;
     s_rule30[n / 2] = 1;
     s_rule30Inited = true;
     s_rule30LastStep = millis();
@@ -45,12 +46,18 @@ void effectRule30(EffectContext& ctx) {
     }
   }
 
+
+  // If everything is filled with 1s; 
+
+
   uint8_t cr, cg, cb;
   ctx.getEffectColor(LedEffect::Rule30, cr, cg, cb);
 
   for (uint16_t i = 0; i < n; i++) {
     uint8_t v = s_rule30[i];
-    ctx.strip->setPixelColor(i, effect_common::scale8(cr, v * 255), effect_common::scale8(cg, v * 255), effect_common::scale8(cb, v * 255));
+    ctx.strip->setPixelColor(i, effect_common::scale8(cr, v * 255),
+                             effect_common::scale8(cg, v * 255),
+                             effect_common::scale8(cb, v * 255));
   }
   ctx.strip->show();
 }

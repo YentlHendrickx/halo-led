@@ -1,13 +1,13 @@
-#include "effect_context.h"
-#include "effect_common.h"
-#include "led_effects.h"
 #include "config.h"
+#include "effect_common.h"
+#include "effect_context.h"
+#include "led_effects.h"
 #include <Arduino.h>
 
 #define FIRE_HEAT_SIZE ((LED_COUNT) + 2)
 static uint8_t s_heat[FIRE_HEAT_SIZE];
 
-static void heatToFireColorRed(uint8_t h, uint8_t& r, uint8_t& g, uint8_t& b) {
+static void heatToFireColorRed(uint8_t h, uint8_t &r, uint8_t &g, uint8_t &b) {
   if (h < 30) {
     r = (h * 200) / 30;
     g = 0;
@@ -26,14 +26,15 @@ static void heatToFireColorRed(uint8_t h, uint8_t& r, uint8_t& g, uint8_t& b) {
     b = 0;
   } else {
     uint8_t fade = 255 - ((h - 200) * 4);
-    if (fade > 255) fade = 0;
+    if (fade > 255)
+      fade = 0;
     r = effect_common::scale8(255, fade);
     g = effect_common::scale8(255, fade);
     b = 0;
   }
 }
 
-static void heatToFireColorBlue(uint8_t h, uint8_t& r, uint8_t& g, uint8_t& b) {
+static void heatToFireColorBlue(uint8_t h, uint8_t &r, uint8_t &g, uint8_t &b) {
   if (h < 40) {
     r = 0;
     g = 0;
@@ -43,7 +44,8 @@ static void heatToFireColorBlue(uint8_t h, uint8_t& r, uint8_t& g, uint8_t& b) {
     g = 0;
     b = 255;
     uint8_t bright = ((h - 40) * 255) / 80;
-    if (bright > 255) bright = 255;
+    if (bright > 255)
+      bright = 255;
     b = effect_common::scale8(b, bright);
   } else if (h < 180) {
     r = 0;
@@ -51,24 +53,29 @@ static void heatToFireColorBlue(uint8_t h, uint8_t& r, uint8_t& g, uint8_t& b) {
     b = 255;
   } else {
     uint8_t fade = 255 - ((h - 180) * 3);
-    if (fade > 255) fade = 0;
+    if (fade > 255)
+      fade = 0;
     r = 0;
     g = effect_common::scale8(150, fade);
     b = effect_common::scale8(255, fade);
   }
 }
 
-static void heatToFireColor(EffectContext& ctx, uint8_t h, uint8_t& r, uint8_t& g, uint8_t& b) {
+static void heatToFireColor(EffectContext &ctx, uint8_t h, uint8_t &r,
+                            uint8_t &g, uint8_t &b) {
   uint8_t variationMax = (h < 80) ? 8 : 15;
-  uint8_t variation = effect_common::noise8((uint32_t)h * 7919 + ctx.timeMs) % variationMax;
+  uint8_t variation =
+      effect_common::noise8((uint32_t)h * 7919 + ctx.timeMs) % variationMax;
   uint8_t adjustedH = h;
   if (h > 5) {
     if (variation < variationMax / 2) {
       adjustedH = h + variation;
-      if (adjustedH > 255) adjustedH = 255;
+      if (adjustedH > 255)
+        adjustedH = 255;
     } else {
       adjustedH = h - (variation - variationMax / 2);
-      if (adjustedH > h) adjustedH = h;
+      if (adjustedH > h)
+        adjustedH = h;
     }
   }
   if (ctx.fireVariant == FireVariant::Red) {
@@ -78,10 +85,11 @@ static void heatToFireColor(EffectContext& ctx, uint8_t h, uint8_t& r, uint8_t& 
   }
 }
 
-void effectFire(EffectContext& ctx) {
+void effectFire(EffectContext &ctx) {
   const uint16_t n = ctx.strip->numPixels();
   const uint16_t len = n + 2;
-  if (len > FIRE_HEAT_SIZE) return;
+  if (len > FIRE_HEAT_SIZE)
+    return;
 
   float heightPercent;
   if (ctx.intensity <= 1.0f) {
@@ -92,11 +100,14 @@ void effectFire(EffectContext& ctx) {
   } else {
     float t = (ctx.intensity - 2.0f) / 1.0f;
     heightPercent = 0.75f + t * 0.25f;
-    if (heightPercent > 1.0f) heightPercent = 1.0f;
+    if (heightPercent > 1.0f)
+      heightPercent = 1.0f;
   }
   uint16_t maxFlameHeight = (uint16_t)((float)n * heightPercent);
-  if (maxFlameHeight > n) maxFlameHeight = n;
-  if (maxFlameHeight < 1) maxFlameHeight = 1;
+  if (maxFlameHeight > n)
+    maxFlameHeight = n;
+  if (maxFlameHeight < 1)
+    maxFlameHeight = 1;
 
   for (uint16_t i = 0; i < len; i++) {
     if (s_heat[i] > 0) {
@@ -114,17 +125,20 @@ void effectFire(EffectContext& ctx) {
     uint8_t current = s_heat[i];
     uint8_t blend = (below * 2 + current) / 3;
     uint8_t flickerMax = (i < 5) ? 2 : 4;
-    uint8_t flicker = effect_common::noise8((uint32_t)i * 7919 + ctx.timeMs) % flickerMax;
+    uint8_t flicker =
+        effect_common::noise8((uint32_t)i * 7919 + ctx.timeMs) % flickerMax;
     if (flicker < flickerMax / 2 && blend > 0) {
       blend += flicker;
-      if (blend > 255) blend = 255;
+      if (blend > 255)
+        blend = 255;
     }
     s_heat[i] = blend;
   }
 
   if (random(0, 100) < 60) {
     uint8_t spark = 180 + (effect_common::noise8(ctx.timeMs * 7919) % 75);
-    if (spark > 255) spark = 255;
+    if (spark > 255)
+      spark = 255;
     s_heat[0] = (s_heat[0] + spark) > 255 ? 255 : s_heat[0] + spark;
   }
 
@@ -159,14 +173,17 @@ void effectFire(EffectContext& ctx) {
   ctx.strip->show();
 }
 
-void effectFireTop(EffectContext& ctx) {
+void effectFireTop(EffectContext &ctx) {
   const uint16_t n = ctx.strip->numPixels();
   const uint16_t len = n + 2;
-  if (len > FIRE_HEAT_SIZE) return;
+  if (len > FIRE_HEAT_SIZE)
+    return;
 
   uint16_t maxFlameHeight = (uint16_t)((float)n * 0.4f * ctx.intensity);
-  if (maxFlameHeight > n) maxFlameHeight = n;
-  if (maxFlameHeight < 1) maxFlameHeight = 1;
+  if (maxFlameHeight > n)
+    maxFlameHeight = n;
+  if (maxFlameHeight < 1)
+    maxFlameHeight = 1;
 
   for (uint16_t i = 0; i < len; i++) {
     if (s_heat[i] > 0) {
@@ -185,19 +202,23 @@ void effectFireTop(EffectContext& ctx) {
     uint8_t blend = (above * 2 + current) / 3;
     uint16_t distFromTop = len - 1 - i;
     uint8_t flickerMax = (distFromTop < 5) ? 2 : 4;
-    uint8_t flicker = effect_common::noise8((uint32_t)i * 7919 + ctx.timeMs) % flickerMax;
+    uint8_t flicker =
+        effect_common::noise8((uint32_t)i * 7919 + ctx.timeMs) % flickerMax;
     if (flicker < flickerMax / 2 && blend > 0) {
       blend += flicker;
-      if (blend > 255) blend = 255;
+      if (blend > 255)
+        blend = 255;
     }
     s_heat[i] = blend;
   }
 
   if (random(0, 100) < 55) {
     uint8_t sparkHeat = 180 + (effect_common::noise8(ctx.timeMs * 7919) % 75);
-    if (sparkHeat > 255) sparkHeat = 255;
+    if (sparkHeat > 255)
+      sparkHeat = 255;
     uint16_t topIdx = len - 1;
-    s_heat[topIdx] = (s_heat[topIdx] + sparkHeat) > 255 ? 255 : s_heat[topIdx] + sparkHeat;
+    s_heat[topIdx] =
+        (s_heat[topIdx] + sparkHeat) > 255 ? 255 : s_heat[topIdx] + sparkHeat;
   }
 
   for (uint16_t i = 0; i < n; i++) {

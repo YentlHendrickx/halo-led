@@ -33,21 +33,25 @@ void LedStrip::setPixelColor(uint16_t index, uint32_t color) {
 }
 
 void LedStrip::show() {
-  if (_impl) _impl->strip.show();
+  if (_impl)
+    _impl->strip.show();
 }
 
 void LedStrip::clear() {
-  if (_impl) _impl->strip.clear();
+  if (_impl)
+    _impl->strip.clear();
 }
 
 void LedStrip::fill(uint8_t r, uint8_t g, uint8_t b) {
-  if (!_impl) return;
+  if (!_impl)
+    return;
   for (uint16_t i = 0; i < _numPixels; i++)
     _impl->strip.setPixelColor(i, r, g, b);
 }
 
 void LedStrip::setBrightness(uint8_t b) {
-  if (_impl) _impl->strip.setBrightness(b);
+  if (_impl)
+    _impl->strip.setBrightness(b);
 }
 
 LedStrip ledStrip;

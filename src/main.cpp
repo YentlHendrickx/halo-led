@@ -1,11 +1,11 @@
-#include <Arduino.h>
+#include "api.h"
 #include "config.h"
 #include "config_store.h"
-#include "ota.h"
-#include "led_strip.h"
 #include "led_effects.h"
-#include "api.h"
+#include "led_strip.h"
+#include "ota.h"
 #include "web_serial_ui.h"
+#include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 
 AsyncWebServer server(80);
