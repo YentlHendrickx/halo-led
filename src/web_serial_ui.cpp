@@ -35,9 +35,12 @@ static const char *trimCommand(uint8_t *data, size_t len) {
 
 static void reply(const char *msg) { WebSerial.println(msg); }
 
+#define STATUS_LINE_MAX 80
+static char s_statusLine[STATUS_LINE_MAX];
+
 static void replyEffect(const char *name) {
-  WebSerial.print("effect: ");
-  WebSerial.println(name);
+  snprintf(s_statusLine, sizeof(s_statusLine), "effect: %s", name);
+  WebSerial.print(s_statusLine);
 }
 
 static void onMessage(uint8_t *data, size_t len) {
@@ -61,19 +64,31 @@ static void onMessage(uint8_t *data, size_t len) {
     uint8_t gr, gg, gb;
     ledEffectsGetGlobalColor(gr, gg, gb);
     replyEffect(ledEffectsGetCurrentName());
-    WebSerial.println(String("brightness: ") +
-                      String((int)ledEffectsGetBrightness()));
-    WebSerial.println(String("fps: ") + String(ledEffectsGetTargetFps()));
-    WebSerial.println(String("intensity: ") + String(ledEffectsGetIntensity()));
-    WebSerial.println(String("segment-size: ") +
-                      String(ledEffectsGetSegmentSize()));
-    WebSerial.println(String("accent: ") + String(ar) + "," + String(ag) + "," +
-                      String(ab));
-    WebSerial.println(String("global-color: ") + String(gr) + "," + String(gg) +
-                      "," + String(gb));
-    WebSerial.println(
-        String("fire-variant: ") +
-        (ledEffectsGetFireVariant() == FireVariant::Red ? "red" : "blue"));
+    snprintf(s_statusLine, sizeof(s_statusLine), "brightness: %u",
+             (unsigned)ledEffectsGetBrightness());
+    WebSerial.print(s_statusLine);
+    snprintf(s_statusLine, sizeof(s_statusLine), "fps: %u",
+             (unsigned)ledEffectsGetTargetFps());
+    WebSerial.print(s_statusLine);
+    snprintf(s_statusLine, sizeof(s_statusLine), "intensity: %.2f",
+             (double)ledEffectsGetIntensity());
+    WebSerial.print(s_statusLine);
+    snprintf(s_statusLine, sizeof(s_statusLine), "segment-size: %.1f",
+             (double)ledEffectsGetSegmentSize());
+    WebSerial.print(s_statusLine);
+    snprintf(s_statusLine, sizeof(s_statusLine), "accent: %u,%u,%u",
+             (unsigned)ar, (unsigned)ag, (unsigned)ab);
+    WebSerial.print(s_statusLine);
+    snprintf(s_statusLine, sizeof(s_statusLine), "global-color: %u,%u,%u",
+             (unsigned)gr, (unsigned)gg, (unsigned)gb);
+    WebSerial.print(s_statusLine);
+    snprintf(s_statusLine, sizeof(s_statusLine), "fire-variant: %s",
+             ledEffectsGetFireVariant() == FireVariant::Red ? "red" : "blue");
+    WebSerial.print(s_statusLine);
+    // Speed
+    snprintf(s_statusLine, sizeof(s_statusLine), "speed: %.2f",
+             (double)ledEffectsGetSpeed());
+    WebSerial.print(s_statusLine);
     return;
   }
 
@@ -107,8 +122,8 @@ static void onMessage(uint8_t *data, size_t len) {
     float v = atof(cmd + 6);
     if (v >= 0.01f && v <= 20.0f) {
       ledEffectsSetSpeed(v);
-      WebSerial.print("speed: ");
-      WebSerial.println(v);
+      snprintf(s_statusLine, sizeof(s_statusLine), "speed: %.2f", (double)v);
+      WebSerial.print(s_statusLine);
     } else {
       reply("speed 0.01-20.0");
     }
@@ -119,8 +134,8 @@ static void onMessage(uint8_t *data, size_t len) {
     int v = atoi(cmd + 4);
     if (v >= 10 && v <= 100) {
       ledEffectsSetTargetFps((uint8_t)v);
-      WebSerial.print("fps: ");
-      WebSerial.println(v);
+      snprintf(s_statusLine, sizeof(s_statusLine), "fps: %d", v);
+      WebSerial.print(s_statusLine);
     } else {
       reply("fps 10-100");
     }
@@ -131,8 +146,8 @@ static void onMessage(uint8_t *data, size_t len) {
     int v = atoi(cmd + 11);
     if (v >= 0 && v <= 255) {
       ledEffectsSetBrightness((uint8_t)v);
-      WebSerial.print("brightness: ");
-      WebSerial.println(v);
+      snprintf(s_statusLine, sizeof(s_statusLine), "brightness: %d", v);
+      WebSerial.print(s_statusLine);
     } else {
       reply("brightness 0-255");
     }
@@ -146,12 +161,8 @@ static void onMessage(uint8_t *data, size_t len) {
       ledEffectsSetStaticColor((uint8_t)r, (uint8_t)g, (uint8_t)b);
       ledEffectsSet(LedEffect::StaticColor);
       replyEffect("StaticColor");
-      WebSerial.print("color: ");
-      WebSerial.print(r);
-      WebSerial.print(",");
-      WebSerial.print(g);
-      WebSerial.print(",");
-      WebSerial.println(b);
+      snprintf(s_statusLine, sizeof(s_statusLine), "color: %d,%d,%d", r, g, b);
+      WebSerial.print(s_statusLine);
     } else {
       reply("color-R,G,B (0-255 each)");
     }
@@ -163,12 +174,8 @@ static void onMessage(uint8_t *data, size_t len) {
     if (sscanf(cmd + 7, "%d,%d,%d", &r, &g, &b) == 3 && r >= 0 && r <= 255 &&
         g >= 0 && g <= 255 && b >= 0 && b <= 255) {
       ledEffectsSetAccentColor((uint8_t)r, (uint8_t)g, (uint8_t)b);
-      WebSerial.print("accent: ");
-      WebSerial.print(r);
-      WebSerial.print(",");
-      WebSerial.print(g);
-      WebSerial.print(",");
-      WebSerial.println(b);
+      snprintf(s_statusLine, sizeof(s_statusLine), "accent: %d,%d,%d", r, g, b);
+      WebSerial.print(s_statusLine);
     } else {
       reply("accent-R,G,B (0-255 each)");
     }
@@ -181,12 +188,9 @@ static void onMessage(uint8_t *data, size_t len) {
     if (sscanf(cmd + 13, "%d,%d,%d", &r, &g, &b) == 3 && r >= 0 && r <= 255 &&
         g >= 0 && g <= 255 && b >= 0 && b <= 255) {
       ledEffectsSetGlobalColor((uint8_t)r, (uint8_t)g, (uint8_t)b);
-      WebSerial.print("global-color: ");
-      WebSerial.print(r);
-      WebSerial.print(",");
-      WebSerial.print(g);
-      WebSerial.print(",");
-      WebSerial.println(b);
+      snprintf(s_statusLine, sizeof(s_statusLine), "global-color: %d,%d,%d", r,
+               g, b);
+      WebSerial.print(s_statusLine);
     } else {
       reply("global-color-R,G,B (0-255 each)");
     }
@@ -203,21 +207,18 @@ static void onMessage(uint8_t *data, size_t len) {
       const char *colorPart = cmd + strlen(pattern);
       if (strcmp(colorPart, "default") == 0) {
         ledEffectsResetEffectColor(static_cast<LedEffect>(i));
-        WebSerial.print(effectNames[i]);
-        WebSerial.println("-color: default");
+        snprintf(s_statusLine, sizeof(s_statusLine), "%s-color: default",
+                 effectNames[i]);
+        WebSerial.print(s_statusLine);
       } else {
         int r = -1, g = -1, b = -1;
         if (sscanf(colorPart, "%d,%d,%d", &r, &g, &b) == 3 && r >= 0 &&
             r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
           ledEffectsSetEffectColor(static_cast<LedEffect>(i), (uint8_t)r,
                                    (uint8_t)g, (uint8_t)b);
-          WebSerial.print(effectNames[i]);
-          WebSerial.print("-color: ");
-          WebSerial.print(r);
-          WebSerial.print(",");
-          WebSerial.print(g);
-          WebSerial.print(",");
-          WebSerial.println(b);
+          snprintf(s_statusLine, sizeof(s_statusLine), "%s-color: %d,%d,%d",
+                   effectNames[i], r, g, b);
+          WebSerial.print(s_statusLine);
         } else {
           reply("effectname-color-R,G,B or effectname-color-default");
         }
@@ -231,8 +232,9 @@ static void onMessage(uint8_t *data, size_t len) {
     float v = atof(cmd + 10);
     if (v >= 0.1f && v <= 3.0f) {
       ledEffectsSetIntensity(v);
-      WebSerial.print("intensity: ");
-      WebSerial.println(v);
+      snprintf(s_statusLine, sizeof(s_statusLine), "intensity: %.2f",
+               (double)v);
+      WebSerial.print(s_statusLine);
     } else {
       reply("intensity 0.1-3.0");
     }
@@ -245,8 +247,9 @@ static void onMessage(uint8_t *data, size_t len) {
     float v = atof(cmd + 14);
     if (v >= 1.0f && v <= 60.0f) {
       ledEffectsSetSegmentSize(v);
-      WebSerial.print("segment-size: ");
-      WebSerial.println(v);
+      snprintf(s_statusLine, sizeof(s_statusLine), "segment-size: %.1f",
+               (double)v);
+      WebSerial.print(s_statusLine);
     } else {
       reply("segment-size 1.0-60.0");
     }

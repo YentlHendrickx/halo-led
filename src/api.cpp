@@ -26,6 +26,8 @@ static void sendStatus(AsyncWebServerRequest *request) {
   body += "\nglobal-color: ";
   body += String(gr) + "," + String(gg) + "," + String(gb);
   body += "\nfire-variant: ";
+  body += "\nspeed: ";
+  body += String(ledEffectsGetSpeed());
   body += (ledEffectsGetFireVariant() == FireVariant::Red) ? "red" : "blue";
   request->send(200, "text/plain", body);
 }

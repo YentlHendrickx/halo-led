@@ -14,6 +14,9 @@ void effectBreathing(EffectContext &ctx) {
   if (b > 255)
     b = 255;
   ctx.strip->setBrightness(b);
-  ctx.strip->fill(255, 60, 20);
+
+  uint8_t cr, cg, cb;
+  ctx.getEffectColor(LedEffect::ColorWipe, cr, cg, cb);
+  ctx.strip->fill(cr, cg, cb);
   ctx.strip->show();
 }
