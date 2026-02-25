@@ -6,7 +6,7 @@
 namespace {
 
 const uint32_t CONFIG_MAGIC = 0x486C4366u; // "HlCf" in little-endian
-const uint16_t CONFIG_VERSION = 1;
+const uint16_t CONFIG_VERSION = 2;
 const size_t EEPROM_SIZE = 128;
 
 #pragma pack(push, 1)
@@ -26,9 +26,9 @@ struct StoredConfig {
   uint8_t accentR, accentG, accentB;
   uint8_t globalR, globalG, globalB;
   float intensity;
-  uint8_t fireVariant; // 0 = Red, 1 = Blue
-  uint8_t reserved;
-  EffectColorSlot effectColors[21]; // LedEffect::Count
+  float segmentSize;
+  uint8_t fireVariant;              // 0 = Red, 1 = Blue
+  EffectColorSlot effectColors[22]; // LedEffect::Count
 };
 #pragma pack(pop)
 
@@ -47,10 +47,15 @@ void applyConfig(const StoredConfig &c) {
   ledEffectsSetAccentColor(c.accentR, c.accentG, c.accentB);
   ledEffectsSetGlobalColor(c.globalR, c.globalG, c.globalB);
   ledEffectsSetIntensity(c.intensity);
+  if (c.version >= 2) {
+    ledEffectsSetSegmentSize(c.segmentSize);
+  } else {
+    ledEffectsSetSegmentSize(5.0f);
+  }
   ledEffectsSetFireVariant(c.fireVariant == 1 ? FireVariant::Blue
                                               : FireVariant::Red);
 
-  for (int i = 0; i < EFFECT_COUNT && i < 21; i++) {
+  for (int i = 0; i < EFFECT_COUNT && i < 22; i++) {
     if (c.effectColors[i].custom) {
       ledEffectsSetEffectColor(static_cast<LedEffect>(i), c.effectColors[i].r,
                                c.effectColors[i].g, c.effectColors[i].b);
@@ -73,10 +78,10 @@ void captureConfig(StoredConfig &c) {
   ledEffectsGetGlobalColor(c.globalR, c.globalG, c.globalB);
 
   c.intensity = ledEffectsGetIntensity();
+  c.segmentSize = ledEffectsGetSegmentSize();
   c.fireVariant = (ledEffectsGetFireVariant() == FireVariant::Blue) ? 1 : 0;
-  c.reserved = 0;
 
-  for (int i = 0; i < EFFECT_COUNT && i < 21; i++) {
+  for (int i = 0; i < EFFECT_COUNT && i < 22; i++) {
     LedEffect e = static_cast<LedEffect>(i);
     c.effectColors[i].custom = ledEffectsHasEffectColor(e) ? 1 : 0;
     if (c.effectColors[i].custom) {

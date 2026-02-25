@@ -19,6 +19,8 @@ static void sendStatus(AsyncWebServerRequest *request) {
   body += String(ledEffectsGetTargetFps());
   body += "\nintensity: ";
   body += String(ledEffectsGetIntensity());
+  body += "\nsegment-size: ";
+  body += String(ledEffectsGetSegmentSize());
   body += "\naccent: ";
   body += String(ar) + "," + String(ag) + "," + String(ab);
   body += "\nglobal-color: ";
@@ -282,6 +284,25 @@ static void handleIntensity(AsyncWebServerRequest *request) {
   request->send(200, "text/plain", String("intensity: ") + String(v));
 }
 
+static void handleSegmentSize(AsyncWebServerRequest *request) {
+  if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
+    request->send(405, "text/plain", "Method Not Allowed");
+    return;
+  }
+  bool post = (request->method() == HTTP_POST);
+  if (!request->hasParam("value", post)) {
+    request->send(400, "text/plain", "missing value");
+    return;
+  }
+  float v = request->getParam("value", post)->value().toFloat();
+  if (v < 1.0f || v > 60.0f) {
+    request->send(400, "text/plain", "segment-size 1.0-60.0");
+    return;
+  }
+  ledEffectsSetSegmentSize(v);
+  request->send(200, "text/plain", String("segment-size: ") + String(v));
+}
+
 static void handleFireVariant(AsyncWebServerRequest *request) {
   if (request->method() != HTTP_GET && request->method() != HTTP_POST) {
     request->send(405, "text/plain", "Method Not Allowed");
@@ -369,6 +390,9 @@ void apiRegister(AsyncWebServer *server) {
 
   server->on("/api/intensity", HTTP_GET, handleIntensity);
   server->on("/api/intensity", HTTP_POST, handleIntensity);
+
+  server->on("/api/segment-size", HTTP_GET, handleSegmentSize);
+  server->on("/api/segment-size", HTTP_POST, handleSegmentSize);
 
   server->on("/api/fire-variant", HTTP_GET, handleFireVariant);
   server->on("/api/fire-variant", HTTP_POST, handleFireVariant);

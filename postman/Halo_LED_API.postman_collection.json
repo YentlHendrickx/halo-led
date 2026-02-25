@@ -54,7 +54,7 @@
               "path": ["api", "effect"],
               "query": [{ "key": "name", "value": "Fire", "description": "Effect name: Fire, Aurora, Comet, etc." }]
             },
-            "description": "Set effect by name. Try:  Aurora, Fire, FireTop, MeteorShower, Breathing, Comet, Plasma, Confetti, Twinkle, Pride, Scanner, ColorWipe, TheaterChase, StaticColor, Rain, Candle, RainbowCycle, Rule30, Starfield, Sinelon, Noise"
+            "description": "Set effect by name. Try:  Aurora, Fire, FireTop, MeteorShower, Breathing, Comet, Plasma, Confetti, Twinkle, Pride, Scanner, ColorWipe, TheaterChase, StaticColor, Rain, Candle, RainbowCycle, Automaton, Starfield, Sinelon, Noise, BinaryCounter"
           }
         },
         {
@@ -185,6 +185,34 @@
               "urlencoded": [{ "key": "value", "value": "60" }]
             },
             "url": "{{baseUrl}}/api/fps"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Segment size",
+      "item": [
+        {
+          "name": "Set segment size (GET)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/segment-size?value=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "segment-size"],
+              "query": [{ "key": "value", "value": "5", "description": "1.0-60.0 (e.g. LEDs per bit)" }]
+            },
+            "description": "Set segment size (e.g. LEDs per bit in BinaryCounter)."
+          }
+        },
+        {
+          "name": "Set segment size (POST)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/x-www-form-urlencoded"}],
+            "body": {"mode": "urlencoded", "urlencoded": [{"key": "value", "value": "10"}]},
+            "url": "{{baseUrl}}/api/segment-size"
           }
         }
       ]

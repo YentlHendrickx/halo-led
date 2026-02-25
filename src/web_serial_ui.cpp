@@ -56,9 +56,24 @@ static void onMessage(uint8_t *data, size_t len) {
   }
 
   if (strcmp(cmd, "status") == 0 || strcmp(cmd, "effect") == 0) {
+    uint8_t ar, ag, ab;
+    ledEffectsGetAccentColor(ar, ag, ab);
+    uint8_t gr, gg, gb;
+    ledEffectsGetGlobalColor(gr, gg, gb);
     replyEffect(ledEffectsGetCurrentName());
-    WebSerial.print("brightness: ");
-    WebSerial.println(ledEffectsGetBrightness());
+    WebSerial.println(String("brightness: ") +
+                      String((int)ledEffectsGetBrightness()));
+    WebSerial.println(String("fps: ") + String(ledEffectsGetTargetFps()));
+    WebSerial.println(String("intensity: ") + String(ledEffectsGetIntensity()));
+    WebSerial.println(String("segment-size: ") +
+                      String(ledEffectsGetSegmentSize()));
+    WebSerial.println(String("accent: ") + String(ar) + "," + String(ag) + "," +
+                      String(ab));
+    WebSerial.println(String("global-color: ") + String(gr) + "," + String(gg) +
+                      "," + String(gb));
+    WebSerial.println(
+        String("fire-variant: ") +
+        (ledEffectsGetFireVariant() == FireVariant::Red ? "red" : "blue"));
     return;
   }
 
@@ -220,6 +235,20 @@ static void onMessage(uint8_t *data, size_t len) {
       WebSerial.println(v);
     } else {
       reply("intensity 0.1-3.0");
+    }
+    return;
+  }
+
+  // Segment size: segment-size-VALUE (1.0-60.0, e.g. LEDs per bit in
+  // BinaryCounter)
+  if (strncmp(cmd, "segment-size-", 14) == 0) {
+    float v = atof(cmd + 14);
+    if (v >= 1.0f && v <= 60.0f) {
+      ledEffectsSetSegmentSize(v);
+      WebSerial.print("segment-size: ");
+      WebSerial.println(v);
+    } else {
+      reply("segment-size 1.0-60.0");
     }
     return;
   }

@@ -28,6 +28,7 @@ enum class LedEffect {
   Starfield,
   Sinelon,
   Noise,
+  BinaryCounter,
   Count
 };
 
@@ -54,6 +55,10 @@ void ledEffectsGetGlobalColor(uint8_t& r, uint8_t& g, uint8_t& b);
 // Intensity parameter (scales effect sizes, e.g., fire height)
 void ledEffectsSetIntensity(float intensity);
 float ledEffectsGetIntensity();
+
+// Segment size (e.g. LEDs per bit in BinaryCounter; general-purpose scale for segment-based effects)
+void ledEffectsSetSegmentSize(float segmentSize);
+float ledEffectsGetSegmentSize();
 
 void ledEffectsBegin();
 void ledEffectsLoadDefaults();  // Reset all user settings to defaults (for config clear / no saved config)

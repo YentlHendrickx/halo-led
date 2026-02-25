@@ -14,8 +14,8 @@ static const char *const EFFECT_NAMES[] = {
     "Aurora",  "Fire",         "FireTop",      "MeteorShower", "Breathing",
     "Comet",   "Plasma",       "Confetti",     "Twinkle",      "Pride",
     "Scanner", "ColorWipe",    "TheaterChase", "StaticColor",  "Rain",
-    "Candle",  "RainbowCycle", "Rule30",       "Starfield",    "Sinelon",
-    "Noise"};
+    "Candle",  "RainbowCycle", "Automaton",    "Starfield",    "Sinelon",
+    "Noise",   "BinaryCounter"};
 
 // --- Engine state ---
 static LedEffect s_effect = LedEffect::Aurora;
@@ -42,6 +42,8 @@ static EffectColor s_effectColors[static_cast<int>(LedEffect::Count)];
 
 // Intensity parameter (default 1.0, scales effect sizes)
 static float s_intensity = 1.0f;
+// Segment size (e.g. LEDs per bit; default 5)
+static float s_segmentSize = 5.0f;
 
 // Fire variant
 static FireVariant s_fireVariant = FireVariant::Red;
@@ -77,6 +79,7 @@ void ledEffectsLoadDefaults() {
   ledEffectsSetAccentColor(255, 120, 40);
   ledEffectsSetGlobalColor(255, 120, 40);
   ledEffectsSetIntensity(1.0f);
+  ledEffectsSetSegmentSize(5.0f);
   ledEffectsSetFireVariant(FireVariant::Red);
   ledEffectsSetAutoCycleMs(15000);
   for (int i = 0; i < static_cast<int>(LedEffect::Count); i++) {
@@ -231,6 +234,7 @@ void ledEffectsFillContext(EffectContext *ctx) {
   ctx->timeSec = effectTimeSec();
   ctx->timeMs = effectTimeMs();
   ctx->intensity = s_intensity;
+  ctx->segmentSize = s_segmentSize;
   ctx->speed = s_speed;
   ctx->fireVariant = s_fireVariant;
   ctx->staticR = s_staticR;
@@ -290,6 +294,16 @@ void ledEffectsSetIntensity(float intensity) {
 }
 
 float ledEffectsGetIntensity() { return s_intensity; }
+
+void ledEffectsSetSegmentSize(float segmentSize) {
+  if (segmentSize < 1.0f)
+    segmentSize = 1.0f;
+  if (segmentSize > 60.0f)
+    segmentSize = 60.0f;
+  s_segmentSize = segmentSize;
+}
+
+float ledEffectsGetSegmentSize() { return s_segmentSize; }
 
 void ledEffectsSetFireVariant(FireVariant variant) { s_fireVariant = variant; }
 
@@ -394,6 +408,9 @@ void ledEffectsDispatchUpdate(EffectContext *ctx) {
     break;
   case LedEffect::Noise:
     effectNoise(*ctx);
+    break;
+  case LedEffect::BinaryCounter:
+    effectBinaryCounter(*ctx);
     break;
   default:
     effectAurora(*ctx);
