@@ -1,18 +1,18 @@
 # halo
 
-LED strip controller for ESP8266 (NodeMCU). Web UI over WiFi, REST API, and a bunch of effects. OTA updates so you can flash it without plugging in USB.
+LED strip controller for ESP8266 (NodeMCU). Web UI over WiFi, REST API, and a bunch of effects. OTA updates so you can flash it without plugging in USB (after initial flash).
 
 ## Hardware
 
-- ESP8266 (tested on NodeMCU v2/v3, board `huzzah` in PlatformIO)
-- WS2812B/WS2815 strip on GPIO 2
+- ESP8266 (tested on NodeMCU v2/v3, board `huzzah` in PlatformIO -> selecting correct board gave me issues)
+- WS2812B/WS2815 strip on GPIO 2 (12v, no level shifter as ESP is right next to Data input. So far; no issues)
 - Pin and length are in `include/config.h` (`LED_PIN`, `LED_COUNT`)
 
 ## Setup
 
 1. Clone and open in PlatformIO (VS Code or CLI).
 2. **WiFi:** Copy `include/wifi_credentials.h.example` to `include/wifi_credentials.h` and set your SSID and password. The real `wifi_credentials.h` is gitignored so you don’t commit secrets.
-3. Build and upload: `pio run -t upload`. Default is OTA to the IP in `platformio.ini` (`upload_port`); set your device IP there or pass `--upload-port <ip>`.
+3. Build and upload: `pio run -t upload`. Default is OTA to the IP in `platformio.ini` (`upload_port`); set your device IP there or pass `--upload-port <ip>`. (You can find the ip of your ESP using a tool such as nmap)
 
 (Initial OS flash required; afterwards OTA updates will work, make sure to keep including the OTA setup each time)
 
@@ -24,7 +24,7 @@ LED strip controller for ESP8266 (NodeMCU). Web UI over WiFi, REST API, and a bu
 - **REST API:** Same controls via HTTP (see `postman/` for a collection if you use Postman).
 - **Persistent config:** Use the API or WebSerial to run `config-store` (or `POST /api/config/store`) to save current settings to EEPROM, or `config-clear` to reset to defaults. Settings are loaded on boot.
 
-Effects live in `src/effects/`; the engine and config are in `src/led_effects.cpp` and the rest of `src/`. There’s a more detailed refactor guide in `docs/EFFECTS_SPLIT_GUIDE.md` if you’re poking around the effect code.
+Effects live in `src/effects/`; the engine and config are in `src/led_effects.cpp` and the rest of `src/`.
 
 ## Build / upload
 
